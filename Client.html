@@ -1,0 +1,324 @@
+<div id="app"></div>
+<script>
+(function(){
+  'use strict';
+  const DRAFT_KEY = 'encuesta_artesanos_isla_hermosa_draft_v1';
+  const SESSION_KEY = 'encuesta_artesanos_session_v1';
+  const app = document.getElementById('app');
+  const ctx = window.SERVER_CONTEXT || {};
+  const state = {
+    tab: 'inicio',
+    schema: null,
+    bootstrap: null,
+    session: null,
+    values: {},
+    gps: {},
+    photos: {},
+    currentSection: 0,
+    loading: false,
+    message: null,
+    dashboard: null,
+    responses: null,
+    filters: {},
+    startTs: new Date().toISOString(),
+    sourceUuid: cryptoRandom_()
+  };
+
+  function callServer(fn, ...args){
+    return new Promise((resolve,reject)=>{
+      google.script.run.withSuccessHandler(resolve).withFailureHandler(reject)[fn](...args);
+    });
+  }
+  function esc(v){return String(v==null?'':v).replace(/[&<>'"]/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[s]));}
+  function n(v){return Number(v||0).toLocaleString('es-PY');}
+  function pct(v){return (Number(v||0)).toLocaleString('es-PY',{maximumFractionDigits:1})+'%';}
+  function today(){return new Date().toISOString().slice(0,10);}
+  function cryptoRandom_(){
+    try { return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g,c=>(c^crypto.getRandomValues(new Uint8Array(1))[0]&15>>c/4).toString(16)); }
+    catch(e){ return 'ART_'+Date.now()+'_'+Math.random().toString(16).slice(2); }
+  }
+  function toast(type, text){state.message={type,text}; render(); setTimeout(()=>{state.message=null; render();},5500);}
+  function setLoading(v){state.loading=!!v; render();}
+  function sessionToken(){return state.session && state.session.token ? state.session.token : '';}
+  function saveSession(s){state.session=s; localStorage.setItem(SESSION_KEY, JSON.stringify(s||{}));}
+  function restoreSession(){try{const s=JSON.parse(localStorage.getItem(SESSION_KEY)||'null'); if(s&&s.token) state.session=s;}catch(e){}}
+  function saveDraft(){
+    localStorage.setItem(DRAFT_KEY, JSON.stringify({values:state.values,gps:state.gps,photosMeta:Object.keys(state.photos),startTs:state.startTs,sourceUuid:state.sourceUuid,ts:new Date().toISOString()}));
+  }
+  function restoreDraft(){
+    try{
+      const d=JSON.parse(localStorage.getItem(DRAFT_KEY)||'null');
+      if(d&&d.values){state.values=d.values||{}; state.gps=d.gps||{}; state.startTs=d.startTs||new Date().toISOString(); state.sourceUuid=d.sourceUuid||cryptoRandom_(); return true;}
+    }catch(e){}
+    return false;
+  }
+  function clearDraft(){localStorage.removeItem(DRAFT_KEY); state.values={}; state.gps={}; state.photos={}; state.startTs=new Date().toISOString(); state.sourceUuid=cryptoRandom_(); seedDefaults_(); render();}
+  function seedDefaults_(){
+    if(!state.values.fecha_encuesta) state.values.fecha_encuesta=today();
+    if(!state.values.comunidad) state.values.comunidad='Isla Hermosa';
+    if(!state.values.departamento) state.values.departamento='Concepción';
+    if(!state.values.edicion && state.bootstrap) state.values.edicion=state.bootstrap.app.activeEdition;
+  }
+
+  async function init(){
+    restoreSession();
+    renderSkeleton_();
+    try{
+      const [bootstrap, schema] = await Promise.all([callServer('getBootstrap', sessionToken()), callServer('getSurveySchema')]);
+      state.bootstrap=bootstrap; state.schema=schema;
+      if(bootstrap.session) state.session=Object.assign({token:sessionToken()}, bootstrap.session); else { state.session=null; localStorage.removeItem(SESSION_KEY); }
+      restoreDraft(); seedDefaults_();
+      render();
+    }catch(err){app.innerHTML='<div class="login-panel card error"><h3>Error al cargar</h3><p>'+esc(err.message||err)+'</p></div>';}
+  }
+
+  function renderSkeleton_(){app.innerHTML='<div class="app-shell"><aside class="sidebar"><div class="brand"><div class="brand-mark">IH</div><div><h1>Artesanos Isla Hermosa</h1><p>Paracel · Monitor de Impacto Social</p></div></div><div class="side-card"><span class="loader"></span> Cargando aplicativo...</div></aside><main class="main"><div class="card"><span class="loader"></span> Preparando formulario y catálogos.</div></main></div>';}
+
+  function render(){
+    if(!state.schema || !state.bootstrap){renderSkeleton_();return;}
+    app.innerHTML = '<div class="app-shell">'+sidebar_()+'<main class="main">'+topbar_()+message_()+view_()+footer_()+'</main></div>';
+    bindGlobal_();
+    if(state.tab==='formulario') bindSurvey_();
+    if(state.tab==='dashboard') bindDashboard_();
+    if(state.tab==='respuestas') bindResponses_();
+    if(state.tab==='admin') bindAdmin_();
+  }
+  function sidebar_(){
+    const links=state.bootstrap.app.links||{};
+    const nav=[['inicio','🏠','Inicio'],['formulario','📝','Formulario'],['dashboard','📊','Dashboard'],['respuestas','🗂️','Respuestas'],['admin','⚙️','Administración']];
+    return '<aside class="sidebar"><div class="brand"><div class="brand-mark">IH</div><div><h1>'+esc(state.bootstrap.app.appName)+'</h1><p>'+esc(state.bootstrap.app.projectName)+'</p></div></div>'+ 
+      '<div class="nav">'+nav.map(x=>'<button data-nav="'+x[0]+'" class="'+(state.tab===x[0]?'active':'')+'"><span>'+x[1]+'</span><b>'+x[2]+'</b></button>').join('')+'</div>'+ 
+      '<div class="side-card"><h3>Operativo</h3><p>Formulario optimizado para relevamiento socioeconómico, productivo y comercial de artesanos de Isla Hermosa.</p></div>'+ 
+      '<div class="side-card"><h3>Estado</h3><p>Edición activa: <b>'+esc(state.bootstrap.app.activeEdition)+'</b><br>Sesión: <b>'+(state.session?esc(state.session.displayName||state.session.username):'sin iniciar')+'</b></p></div>'+ 
+      '<div class="side-card side-links"><h3>Recursos</h3><a href="'+esc(links.spreadsheetUrl)+'" target="_blank">Abrir Google Sheet</a><a href="'+esc(links.photosFolderUrl)+'" target="_blank">Abrir carpeta de fotos</a><a href="'+esc(links.repositoryUrl)+'" target="_blank">Repositorio GitHub</a></div>'+ 
+      '</aside>';
+  }
+  function topbar_(){
+    const title={inicio:'Inicio',formulario:'Carga de encuesta',dashboard:'Dashboard gerencial',respuestas:'Consulta de respuestas',admin:'Administración'}[state.tab]||'';
+    return '<div class="topbar"><div class="page-title"><h2>'+title+'</h2><p>'+esc(state.bootstrap.app.orgName)+' · '+esc(state.bootstrap.app.projectName)+'</p></div><div class="userbox">'+
+      (state.loading?'<span class="pill"><span class="loader"></span> Procesando</span>':'')+
+      (state.session?'<span class="pill ok">● '+esc(state.session.displayName||state.session.username)+' · '+esc(state.session.role)+'</span><button class="btn secondary" id="logoutBtn">Salir</button>':'<button class="btn" id="openLogin">Iniciar sesión</button>')+
+      '</div></div>';
+  }
+  function message_(){if(!state.message)return''; const cls=state.message.type==='error'?'error':(state.message.type==='success'?'success':'notice'); return '<div class="'+cls+'">'+esc(state.message.text)+'</div>';}
+  function footer_(){return '<div class="footer">Paracel S.A. · Encuesta a Artesanos de Isla Hermosa · Versión 1.0.0</div>';}
+  function view_(){
+    if(state.tab==='inicio') return homeView_();
+    if(state.tab==='formulario') return surveyView_();
+    if(state.tab==='dashboard') return authGate_(dashboardView_);
+    if(state.tab==='respuestas') return authGate_(responsesView_);
+    if(state.tab==='admin') return authGate_(adminView_, ['admin','editor']);
+    return homeView_();
+  }
+  function authGate_(renderFn, roles){
+    if(!state.session) return loginView_('Para acceder a esta vista debe iniciar sesión.');
+    if(roles && roles.indexOf(state.session.role)<0) return '<div class="card error"><h3>Permisos insuficientes</h3><p>Esta vista requiere rol '+roles.join(' o ')+'.</p></div>';
+    return renderFn();
+  }
+
+  function homeView_(){
+    return '<section class="hero"><div class="card"><h2>Relevamiento integral para artesanos de Isla Hermosa</h2><p class="muted">Esta aplicación combina las mejores funcionalidades ya usadas en encuestas de colaboradores y pescadores: formulario por secciones, georreferenciación, fotos comprimidas, guardado automático local, validaciones, tablero gerencial, auditoría y base analítica sin datos personales.</p><div class="toolbar"><button class="btn" data-nav="formulario">Iniciar nueva entrevista</button><button class="btn secondary" data-nav="dashboard">Ver dashboard</button></div><div class="hero-stat"><div class="stat"><strong>'+state.schema.sections.length+'</strong><span>secciones del instrumento</span></div><div class="stat"><strong>'+questionCount_()+'</strong><span>variables/preguntas configuradas</span></div><div class="stat"><strong>'+state.schema.app.photoFields.length+'</strong><span>slots de fotografías</span></div><div class="stat"><strong>'+state.schema.app.geoFields.length+'</strong><span>puntos GPS posibles</span></div></div></div><div class="card"><h3>Componentes integrados</h3><div class="bar-list"><div class="notice">✓ Captura socioeconómica, educativa, sanitaria y de vivienda.</div><div class="notice">✓ Módulo productivo artesanal: materia prima, producción, ventas e ingresos.</div><div class="notice">✓ Formalización, asociatividad, financiamiento y necesidades de apoyo.</div><div class="notice">✓ Evidencia fotográfica y ubicación para control de calidad.</div></div></div></section>';
+  }
+  function questionCount_(){return state.schema.sections.reduce((a,s)=>a+s.questions.length,0);}
+
+  function loginView_(msg){
+    return '<div class="login-panel card"><h3>Acceso administrativo</h3><p class="muted">'+esc(msg||'Ingrese sus credenciales.')+'</p><div class="grid"><label>Usuario<input class="control" id="loginUser" autocomplete="username"></label><label>Contraseña<input class="control" id="loginPass" type="password" autocomplete="current-password"></label><button class="btn" id="loginBtn">Iniciar sesión</button></div><p class="small muted">Credenciales iniciales: admin/123, diego/456, user/123. Deben cambiarse luego del despliegue.</p></div>';
+  }
+
+  function surveyView_(){
+    const sections=state.schema.sections;
+    const i=Math.max(0,Math.min(state.currentSection,sections.length-1));
+    const sec=sections[i];
+    const progress=Math.round(((i+1)/sections.length)*100);
+    return '<div class="card"><div class="section-title"><div><h3>Formulario de entrevista</h3><p class="muted">Avance de secciones: '+(i+1)+' de '+sections.length+' · '+progress+'%</p></div><div class="toolbar right"><button class="btn secondary" id="saveDraftBtn">Guardar borrador</button><button class="btn ghost" id="clearDraftBtn">Nueva entrevista</button></div></div><div class="form-progress"><div style="width:'+progress+'%"></div></div><div class="section-tabs">'+sections.map((s,idx)=>'<button class="'+(idx===i?'active':'')+'" data-section="'+idx+'">'+(idx+1)+'. '+esc(s.label)+'</button>').join('')+'</div></div>'+ 
+      '<div class="card"><div class="section-title"><div><h3>'+esc(sec.label)+'</h3><p class="muted">Complete los campos requeridos marcados con asterisco.</p></div><span class="pill">'+esc(sec.id)+'</span></div><div class="q-grid">'+sec.questions.map(q=>renderQuestion_(q)).join('')+'</div><div class="toolbar" style="margin-top:18px;justify-content:space-between"><div><button class="btn secondary" id="prevSec" '+(i===0?'disabled':'')+'>Anterior</button> <button class="btn secondary" id="nextSec" '+(i===sections.length-1?'disabled':'')+'>Siguiente</button></div><button class="btn" id="submitSurveyBtn">Enviar encuesta</button></div></div>';
+  }
+  function isVisible_(q){
+    const v=q.visible_if; if(!v||!v.field)return true;
+    const cur=state.values[v.field];
+    if(v.equals!==undefined) return String(cur||'')===String(v.equals);
+    if(v.not_empty) return cur!==undefined && cur!==null && String(cur)!=='';
+    return true;
+  }
+  function renderQuestion_(q){
+    if(!isVisible_(q)) return '';
+    const full=['textarea','roster','photo','geolocation','checkbox_group','multiselect'].indexOf(q.input_type)>=0 ? ' full' : '';
+    const req=q.required?'<span class="req">*</span>':'';
+    return '<div class="q'+full+'" data-q="'+esc(q.field_name)+'"><label>'+esc(q.label)+req+'</label>'+input_(q)+(q.help_text?'<div class="help">'+esc(q.help_text)+'</div>':'')+'</div>';
+  }
+  function input_(q){
+    const f=q.field_name, val=state.values[f]||'';
+    if(q.input_type==='textarea') return '<textarea class="control" data-field="'+esc(f)+'">'+esc(val)+'</textarea>';
+    if(q.input_type==='number') return '<input class="control" type="number" inputmode="decimal" data-field="'+esc(f)+'" value="'+esc(val)+'">';
+    if(q.input_type==='date') return '<input class="control" type="date" data-field="'+esc(f)+'" value="'+esc(val)+'">';
+    if(q.input_type==='select') return '<select class="control" data-field="'+esc(f)+'"><option value="">Seleccione...</option>'+q.options.map(o=>'<option '+(String(val)===String(o.value)?'selected':'')+' value="'+esc(o.value)+'">'+esc(o.label)+'</option>').join('')+'</select>';
+    if(q.input_type==='buttons') return '<div class="buttons" data-buttons="'+esc(f)+'">'+q.options.map(o=>'<button type="button" class="choice '+(String(val)===String(o.value)?'active':'')+'" data-choice="'+esc(o.value)+'">'+esc(o.label)+'</button>').join('')+'</div>';
+    if(q.input_type==='checkbox_group' || q.input_type==='multiselect'){
+      const arr=Array.isArray(val)?val:(val?String(val).split(';').map(x=>x.trim()):[]);
+      return '<div class="check-list">'+q.options.map(o=>'<label class="check-item"><input type="checkbox" data-check="'+esc(f)+'" value="'+esc(o.value)+'" '+(arr.indexOf(o.value)>=0?'checked':'')+'> <span>'+esc(o.label)+'</span></label>').join('')+'</div>';
+    }
+    if(q.input_type==='geolocation'){
+      const g=state.gps[f]||{}; const txt=g.lat?('Lat '+Number(g.lat).toFixed(6)+' · Lng '+Number(g.lng).toFixed(6)+' · precisión '+Math.round(g.accuracy||0)+' m'):'Sin capturar';
+      return '<div class="geo-box"><div class="toolbar"><button type="button" class="btn secondary" data-geo="'+esc(f)+'">📍 Capturar GPS</button><span class="pill '+(g.lat?'ok':'warn')+'">'+esc(txt)+'</span></div></div>';
+    }
+    if(q.input_type==='photo'){
+      const p=state.photos[f];
+      return '<div class="photo-box"><input class="control" type="file" accept="image/*" capture="environment" data-photo="'+esc(f)+'">'+(p?'<img class="preview-img" src="'+esc(p.dataUrl)+'"><p class="small muted">'+esc(p.name)+' · '+Math.round((p.size||0)/1024)+' KB</p>':'<p class="small muted">Sin foto seleccionada.</p>')+'</div>';
+    }
+    if(q.input_type==='roster') return rosterInput_(f);
+    return '<input class="control" type="text" data-field="'+esc(f)+'" value="'+esc(val)+'">';
+  }
+  function rosterInput_(field){
+    const arr=Array.isArray(state.values[field])?state.values[field]:[];
+    return '<div class="roster" id="rosterBox"><div class="toolbar"><button type="button" class="btn secondary" id="addRoster">Agregar integrante</button><span class="pill">'+arr.length+' integrantes</span></div>'+arr.map((m,i)=>'<div class="roster-row"><input class="control" data-roster="'+i+'" data-roster-field="parentesco" placeholder="Parentesco" value="'+esc(m.parentesco||'')+'"><select class="control" data-roster="'+i+'" data-roster-field="sexo"><option value="">Sexo</option><option '+(m.sexo==='Femenino'?'selected':'')+'>Femenino</option><option '+(m.sexo==='Masculino'?'selected':'')+'>Masculino</option><option '+(m.sexo==='Otro / no responde'?'selected':'')+'>Otro / no responde</option></select><input class="control" type="number" data-roster="'+i+'" data-roster-field="edad" placeholder="Edad" value="'+esc(m.edad||'')+'"><button type="button" class="btn danger" data-remove-roster="'+i+'">×</button></div>').join('')+'</div>';
+  }
+
+  function bindGlobal_(){
+    document.querySelectorAll('[data-nav]').forEach(b=>b.onclick=()=>{state.tab=b.dataset.nav; render(); if(state.tab==='dashboard') loadDashboard_(); if(state.tab==='respuestas') loadResponses_();});
+    const openLogin=document.getElementById('openLogin'); if(openLogin) openLogin.onclick=()=>showLoginModal_();
+    const logoutBtn=document.getElementById('logoutBtn'); if(logoutBtn) logoutBtn.onclick=()=>{callServer('logout',sessionToken()).finally(()=>{state.session=null;localStorage.removeItem(SESSION_KEY);toast('success','Sesión cerrada.');});};
+    const loginBtn=document.getElementById('loginBtn'); if(loginBtn) loginBtn.onclick=doLogin_;
+  }
+  function showLoginModal_(){
+    document.body.insertAdjacentHTML('beforeend','<div class="modal-back" id="loginModal"><div class="modal"><div class="toolbar" style="justify-content:space-between"><h3>Iniciar sesión</h3><button class="btn secondary" id="closeLogin">Cerrar</button></div>'+loginView_('Ingrese sus credenciales administrativas.')+'</div></div>');
+    document.getElementById('closeLogin').onclick=()=>document.getElementById('loginModal').remove();
+    document.querySelector('#loginModal #loginBtn').onclick=doLogin_;
+  }
+  async function doLogin_(){
+    const u=(document.getElementById('loginUser')||{}).value||'';
+    const p=(document.getElementById('loginPass')||{}).value||'';
+    setLoading(true);
+    try{const s=await callServer('login',u,p); saveSession(s); const m=document.getElementById('loginModal'); if(m)m.remove(); toast('success','Sesión iniciada correctamente.');}
+    catch(err){toast('error',err.message||String(err));}
+    finally{setLoading(false);}
+  }
+
+  function bindSurvey_(){
+    document.querySelectorAll('[data-section]').forEach(b=>b.onclick=()=>{state.currentSection=Number(b.dataset.section); render();});
+    document.querySelectorAll('[data-field]').forEach(el=>el.oninput=el.onchange=()=>{state.values[el.dataset.field]=el.value; saveDraft(); renderSoftProgress_();});
+    document.querySelectorAll('[data-buttons]').forEach(box=>box.querySelectorAll('[data-choice]').forEach(btn=>btn.onclick=()=>{state.values[box.dataset.buttons]=btn.dataset.choice; saveDraft(); render();}));
+    document.querySelectorAll('[data-check]').forEach(ch=>ch.onchange=()=>{const f=ch.dataset.check; state.values[f]=Array.from(document.querySelectorAll('[data-check="'+cssEsc_(f)+'"]:checked')).map(x=>x.value); saveDraft();});
+    document.querySelectorAll('[data-geo]').forEach(btn=>btn.onclick=()=>captureGeo_(btn.dataset.geo));
+    document.querySelectorAll('[data-photo]').forEach(inp=>inp.onchange=()=>handlePhoto_(inp.dataset.photo, inp.files&&inp.files[0]));
+    const add=document.getElementById('addRoster'); if(add) add.onclick=()=>{if(!Array.isArray(state.values.miembros_hogar_json))state.values.miembros_hogar_json=[]; state.values.miembros_hogar_json.push({parentesco:'',sexo:'',edad:''}); updateRosterTotals_(); saveDraft(); render();};
+    document.querySelectorAll('[data-remove-roster]').forEach(b=>b.onclick=()=>{state.values.miembros_hogar_json.splice(Number(b.dataset.removeRoster),1); updateRosterTotals_(); saveDraft(); render();});
+    document.querySelectorAll('[data-roster]').forEach(el=>el.oninput=el.onchange=()=>{const i=Number(el.dataset.roster), f=el.dataset.rosterField; state.values.miembros_hogar_json[i][f]=el.value; updateRosterTotals_(); saveDraft();});
+    const prev=document.getElementById('prevSec'); if(prev) prev.onclick=()=>{state.currentSection=Math.max(0,state.currentSection-1); render();};
+    const next=document.getElementById('nextSec'); if(next) next.onclick=()=>{state.currentSection=Math.min(state.schema.sections.length-1,state.currentSection+1); render();};
+    const save=document.getElementById('saveDraftBtn'); if(save) save.onclick=()=>{saveDraft();toast('success','Borrador guardado en este dispositivo.');};
+    const clear=document.getElementById('clearDraftBtn'); if(clear) clear.onclick=()=>{if(confirm('¿Iniciar una nueva entrevista y descartar el borrador local?')) clearDraft();};
+    const submit=document.getElementById('submitSurveyBtn'); if(submit) submit.onclick=submitSurvey_;
+  }
+  function cssEsc_(s){return String(s).replace(/"/g,'\\"');}
+  function renderSoftProgress_(){}
+  function updateRosterTotals_(){
+    const arr=Array.isArray(state.values.miembros_hogar_json)?state.values.miembros_hogar_json:[];
+    let mujeres=0,hombres=0,ninos=0,jovenes=0,adultos=0,mayores=0;
+    arr.forEach(m=>{const sx=(m.sexo||'').toLowerCase(), e=Number(m.edad); if(sx.indexOf('femen')>=0)mujeres++; if(sx.indexOf('mascul')>=0)hombres++; if(isFinite(e)){if(e<=14)ninos++;else if(e<=29)jovenes++;else if(e<=64)adultos++;else mayores++;}});
+    Object.assign(state.values,{total_miembros:arr.length,n_mujeres:mujeres,n_hombres:hombres,ninos_0_14:ninos,jovenes_15_29:jovenes,adultos_30_64:adultos,adultos_mayores_65mas:mayores});
+  }
+  async function captureGeo_(field){
+    if(!navigator.geolocation){toast('error','Este dispositivo no permite geolocalización.');return;}
+    setLoading(true);
+    navigator.geolocation.getCurrentPosition(pos=>{state.gps[field]={lat:pos.coords.latitude,lng:pos.coords.longitude,accuracy:pos.coords.accuracy,ts:new Date().toISOString()}; saveDraft(); setLoading(false); render();}, err=>{setLoading(false);toast('error','No se pudo capturar GPS: '+err.message);},{enableHighAccuracy:true,timeout:15000,maximumAge:0});
+  }
+  async function handlePhoto_(field,file){
+    if(!file)return; setLoading(true);
+    try{const p=await compressImage_(file,1600,.84); state.photos[field]=p; saveDraft(); toast('success','Foto preparada y comprimida.');}
+    catch(err){toast('error','No se pudo procesar la foto: '+(err.message||err));}
+    finally{setLoading(false); render();}
+  }
+  function compressImage_(file,maxW,quality){
+    return new Promise((resolve,reject)=>{
+      const reader=new FileReader();
+      reader.onerror=()=>reject(reader.error);
+      reader.onload=()=>{
+        const img=new Image(); img.onerror=()=>reject(new Error('Imagen inválida.'));
+        img.onload=()=>{
+          const scale=Math.min(1,maxW/img.width); const w=Math.round(img.width*scale), h=Math.round(img.height*scale);
+          const canvas=document.createElement('canvas'); canvas.width=w; canvas.height=h; const ctx=canvas.getContext('2d'); ctx.drawImage(img,0,0,w,h);
+          const dataUrl=canvas.toDataURL('image/jpeg',quality); resolve({fieldName:null,name:file.name.replace(/\.[^.]+$/,'.jpg'),mimeType:'image/jpeg',dataUrl:dataUrl,dataBase64:dataUrl.split(',')[1],size:Math.round(dataUrl.length*0.75)});
+        }; img.src=reader.result;
+      }; reader.readAsDataURL(file);
+    });
+  }
+  function validate_(){
+    const missing=[];
+    state.schema.sections.forEach(sec=>sec.questions.forEach(q=>{if(!isVisible_(q)||!q.required)return; const f=q.field_name; let ok=true; if(q.input_type==='geolocation') ok=!!(state.gps[f]&&state.gps[f].lat); else if(q.input_type==='photo') ok=!!state.photos[f]; else {const v=state.values[f]; ok=Array.isArray(v)?v.length>0:(v!==undefined&&v!==null&&String(v).trim()!=='');} if(!ok) missing.push(q.label);}));
+    return missing;
+  }
+  function normalizedValues_(){
+    const out={}; Object.keys(state.values).forEach(k=>{const v=state.values[k]; out[k]=Array.isArray(v)&&k!=='miembros_hogar_json'?v.join('; '):v;}); return out;
+  }
+  async function submitSurvey_(){
+    const missing=validate_(); if(missing.length){toast('error','Faltan campos obligatorios: '+missing.slice(0,6).join(', ')+(missing.length>6?'...':''));return;}
+    if(!confirm('¿Enviar la encuesta? Verifique que el consentimiento, GPS y datos principales sean correctos.')) return;
+    const photos=Object.keys(state.photos).map(f=>Object.assign({},state.photos[f],{fieldName:f}));
+    const payload={source_uuid:state.sourceUuid,source_version:'artesanos-v1.0.0',start_ts:state.startTs,end_ts:new Date().toISOString(),values:normalizedValues_(),gps:state.gps,photos:photos};
+    setLoading(true);
+    try{const res=await callServer('submitSurvey',payload,sessionToken()); state.tab='inicio'; clearDraft(); toast('success','Encuesta enviada. Estado de calidad: '+res.calidad_estado+'.');}
+    catch(err){toast('error',err.message||String(err));}
+    finally{setLoading(false);}
+  }
+
+  function dashboardView_(){
+    if(!state.dashboard) return '<div class="card"><span class="loader"></span> Cargando dashboard...</div>';
+    const k=state.dashboard.kpi, c=state.dashboard.charts;
+    return filtersView_()+ '<div class="grid cols-4"><div class="kpi"><span>Entrevistas</span><b>'+n(k.total)+'</b></div><div class="kpi"><span>Mujeres</span><b>'+pct(k.pctMujeres)+'</b></div><div class="kpi"><span>Pertenencia indígena</span><b>'+pct(k.pctIndigena)+'</b></div><div class="kpi"><span>GPS capturado</span><b>'+pct(k.pctGps)+'</b></div><div class="kpi"><span>Edad promedio</span><b>'+esc(k.edadPromedio||'—')+'</b></div><div class="kpi"><span>Tamaño hogar prom.</span><b>'+esc(k.tamanoHogarPromedio||'—')+'</b></div><div class="kpi"><span>Venta digital</span><b>'+pct(k.pctVentaDigital)+'</b></div><div class="kpi"><span>Fotos cargadas</span><b>'+n(k.fotos)+'</b></div></div>'+ 
+      '<div class="grid cols-2"><div class="card"><h3>Tipos de artesanía</h3>'+barList_(c.tipo)+'</div><div class="card"><h3>Canales principales de venta</h3>'+barList_(c.canal)+'</div><div class="card"><h3>Prioridad de apoyo</h3>'+barList_(c.prioridad)+'</div><div class="card"><h3>Ingreso artesanal declarado</h3>'+barList_(c.ingreso)+'</div><div class="card"><h3>Comunidades/localidades</h3>'+barList_(c.comunidad)+'</div><div class="card"><h3>Calidad de registros</h3>'+barList_(c.calidad)+'</div></div>'+
+      '<div class="card"><h3>Últimas entrevistas</h3>'+table_(state.dashboard.rowsPreview)+'</div>';
+  }
+  function filtersView_(){
+    const f=state.dashboard?state.dashboard.filters:{};
+    function sel(name,label){const items=(f&&f[name])||[];return '<label>'+label+'<select class="control dash-filter" data-filter="'+name+'"><option value="">Todos</option>'+items.map(x=>'<option '+(state.filters[name]===x.label?'selected':'')+' value="'+esc(x.label)+'">'+esc(x.label)+' ('+n(x.value)+')</option>').join('')+'</select></label>';}
+    return '<div class="card"><div class="toolbar" style="justify-content:space-between"><div class="grid cols-4" style="flex:1">'+sel('comunidad','Comunidad')+sel('sexo','Sexo')+sel('tipo_artesania_principal','Tipo de artesanía')+sel('calidad_estado','Calidad')+'</div><button class="btn secondary" id="refreshDash">Actualizar</button></div></div>';
+  }
+  function barList_(items){
+    items=items||[]; const max=Math.max(1,...items.map(x=>Number(x.value||0)));
+    if(!items.length)return'<p class="muted">Sin datos.</p>';
+    return '<div class="bar-list">'+items.slice(0,10).map(x=>'<div class="bar-row"><span class="small">'+esc(x.label)+'</span><div class="bar-track"><div class="bar-fill" style="width:'+(Number(x.value||0)/max*100)+'%"></div></div><b>'+n(x.value)+'</b></div>').join('')+'</div>';
+  }
+  async function loadDashboard_(){
+    if(!state.session)return; setLoading(true);
+    try{state.dashboard=await callServer('getDashboardSummary',sessionToken(),state.filters); render();}
+    catch(err){toast('error',err.message||String(err));}
+    finally{setLoading(false);}
+  }
+  function bindDashboard_(){
+    const r=document.getElementById('refreshDash'); if(r) r.onclick=loadDashboard_;
+    document.querySelectorAll('.dash-filter').forEach(el=>el.onchange=()=>{state.filters[el.dataset.filter]=el.value; loadDashboard_();});
+  }
+
+  function responsesView_(){
+    if(!state.responses) return '<div class="card"><span class="loader"></span> Cargando respuestas...</div>';
+    return '<div class="card"><div class="toolbar"><input class="control" id="respQ" placeholder="Buscar por nombre, cédula, comunidad, producto..." style="max-width:460px" value="'+esc(state.filters.q||'')+'"><button class="btn" id="searchResp">Buscar</button><button class="btn secondary" id="refreshResp">Actualizar</button></div><p class="muted small">Total encontrado: '+n(state.responses.total)+(state.responses.limited?' (vista limitada)':'')+'</p></div><div class="card">'+table_(state.responses.rows||[])+'</div>';
+  }
+  async function loadResponses_(){
+    if(!state.session)return; setLoading(true);
+    try{state.responses=await callServer('listResponses',sessionToken(),state.filters,250); render();}
+    catch(err){toast('error',err.message||String(err));}
+    finally{setLoading(false);}
+  }
+  function bindResponses_(){
+    const s=document.getElementById('searchResp'); if(s) s.onclick=()=>{state.filters.q=document.getElementById('respQ').value; loadResponses_();};
+    const r=document.getElementById('refreshResp'); if(r) r.onclick=loadResponses_;
+    const q=document.getElementById('respQ'); if(q) q.onkeydown=e=>{if(e.key==='Enter'){state.filters.q=q.value; loadResponses_();}};
+  }
+  function table_(rows){
+    rows=rows||[]; if(!rows.length)return'<p class="muted">Sin datos para mostrar.</p>';
+    const cols=['fecha_encuesta','nombre_completo','sexo','edad','comunidad','tipo_artesania_principal','principal_canal_venta','ingreso_artesania_banda','calidad_estado','cantidad_fotos'];
+    return '<div class="table-wrap"><table><thead><tr>'+cols.map(c=>'<th>'+esc(c)+'</th>').join('')+'</tr></thead><tbody>'+rows.map(r=>'<tr>'+cols.map(c=>'<td>'+esc(r[c]||'')+'</td>').join('')+'</tr>').join('')+'</tbody></table></div>';
+  }
+
+  function adminView_(){
+    const links=state.bootstrap.app.links||{};
+    return '<div class="grid cols-2"><div class="card"><h3>Acciones de mantenimiento</h3><p class="muted">Utilice estas acciones luego de cambios en el cuestionario o para reconstruir bases analíticas.</p><div class="toolbar"><button class="btn" id="syncMeta">Sincronizar cuestionario</button><button class="btn secondary" id="rebuildAnalytics">Reconstruir analítica</button></div></div><div class="card"><h3>Enlaces operativos</h3><div class="admin-links"><a href="'+esc(links.spreadsheetUrl)+'" target="_blank">Google Sheet backend</a><a href="'+esc(links.photosFolderUrl)+'" target="_blank">Carpeta Drive de fotos</a><a href="'+esc(links.repositoryUrl)+'" target="_blank">Repositorio GitHub</a></div></div></div><div class="card"><h3>Gestión de usuarios</h3><p class="muted">Los usuarios se administran en la hoja USUARIOS o mediante la función saveUser(). Por seguridad, cambie las credenciales iniciales.</p></div>';
+  }
+  function bindAdmin_(){
+    const s=document.getElementById('syncMeta'); if(s) s.onclick=async()=>{setLoading(true);try{await callServer('syncQuestionnaireMetadata',sessionToken());toast('success','Cuestionario sincronizado.');}catch(e){toast('error',e.message||String(e));}finally{setLoading(false);}};
+    const r=document.getElementById('rebuildAnalytics'); if(r) r.onclick=async()=>{setLoading(true);try{const res=await callServer('rebuildAnalytics',sessionToken());toast('success','Base analítica reconstruida: '+res.rows+' filas.');}catch(e){toast('error',e.message||String(e));}finally{setLoading(false);}};
+  }
+
+  document.addEventListener('DOMContentLoaded', init);
+})();
+</script>

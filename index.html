@@ -1,0 +1,1043 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Artesanos · Isla Hermosa · Paracel S.A.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f4f7f3;--bg2:#e8f0e6;--card:#ffffff;--ink:#10231d;--muted:#63766d;
+  --brand:#0f3d33;--brand2:#12624f;--accent:#c8a24a;--accent2:#e5c66a;--danger:#b42318;
+  --ok:#13795b;--warn:#b7791f;--line:#dbe5dd;--shadow:0 20px 50px rgba(15,61,51,.12);
+  --radius:24px;--radius2:16px;--pad:18px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;color:var(--ink);background:linear-gradient(135deg,var(--bg),var(--bg2));}
+button,input,select,textarea{font:inherit}button{cursor:pointer}
+.app-shell{min-height:100vh;display:grid;grid-template-columns:300px 1fr;}
+.sidebar{position:sticky;top:0;height:100vh;padding:22px;background:linear-gradient(180deg,#0f3d33,#09231e);color:#fff;overflow:auto;}
+.brand{display:flex;gap:14px;align-items:center;margin-bottom:22px}.brand-mark{width:48px;height:48px;border-radius:18px;background:linear-gradient(135deg,var(--accent2),var(--accent));display:grid;place-items:center;color:#10231d;font-weight:900;font-size:20px;box-shadow:0 10px 30px rgba(0,0,0,.22)}
+.brand h1{font-size:17px;line-height:1.1;margin:0}.brand p{margin:4px 0 0;color:rgba(255,255,255,.75);font-size:12px}
+.nav{display:grid;gap:8px;margin:24px 0}.nav button{width:100%;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:#fff;border-radius:16px;padding:12px 14px;text-align:left;display:flex;gap:10px;align-items:center}.nav button.active,.nav button:hover{background:rgba(229,198,106,.18);border-color:rgba(229,198,106,.55)}
+.side-card{border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.08);border-radius:20px;padding:14px;margin-top:16px}.side-card h3{margin:0 0 8px;font-size:13px}.side-card p{margin:0;color:rgba(255,255,255,.76);font-size:12px;line-height:1.45}
+.main{padding:26px;min-width:0}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:20px;flex-wrap:wrap}
+.page-title h2{font-size:26px;line-height:1.05;margin:0}.page-title p{margin:6px 0 0;color:var(--muted);font-size:14px}
+.userbox{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.pill{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:999px;padding:6px 11px;background:#fff;color:var(--muted);font-size:12px}
+.pill.ok{border-color:#b8e2d4;color:var(--ok);background:#f0fbf7}.pill.warn{border-color:#f3d69b;color:var(--warn);background:#fff8e8}
+.card{background:rgba(255,255,255,.9);backdrop-filter:blur(10px);border:1px solid rgba(219,229,221,.85);border-radius:var(--radius);box-shadow:var(--shadow);padding:var(--pad);margin-bottom:18px}
+.card h3{margin:0 0 10px;font-size:17px}.muted{color:var(--muted)}.small{font-size:12px}
+.grid{display:grid;gap:16px}.grid.cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}.grid.cols-3{grid-template-columns:repeat(3,minmax(0,1fr))}.grid.cols-4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.hero{display:grid;grid-template-columns:1.4fr .9fr;gap:18px;align-items:stretch}
+.hero h2{font-size:30px;margin:0 0 10px}.hero p{line-height:1.55;color:var(--muted)}
+.hero-stat{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:16px}
+.stat{border-radius:18px;border:1px solid var(--line);background:#fff;padding:14px}.stat strong{font-size:22px;display:block}.stat span{font-size:12px;color:var(--muted)}
+.btn{border:0;border-radius:14px;padding:10px 15px;background:var(--brand);color:#fff;font-weight:700;box-shadow:0 8px 20px rgba(15,61,51,.16);font-size:13px}
+.btn:hover{background:var(--brand2)}.btn.secondary{background:#fff;color:var(--brand);border:1px solid var(--line);box-shadow:none}
+.btn.ghost{background:transparent;color:var(--brand);border:1px solid var(--line);box-shadow:none}.btn.danger{background:var(--danger);color:#fff}.btn:disabled{opacity:.55;cursor:not-allowed}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.toolbar.right{justify-content:flex-end}
+.form-progress{height:10px;border-radius:999px;background:#dfe9e2;overflow:hidden;margin-bottom:14px}
+.form-progress>div{height:100%;background:linear-gradient(90deg,var(--brand2),var(--accent));width:0;transition:width .25s ease}
+.section-tabs{display:flex;gap:8px;overflow-x:auto;padding:2px 0 10px;margin-bottom:6px}
+.section-tabs button{border:1px solid var(--line);background:#fff;color:var(--muted);border-radius:999px;padding:8px 12px;white-space:nowrap;font-size:13px}
+.section-tabs button.active{background:var(--brand);border-color:var(--brand);color:#fff}
+.section-title{border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:14px}
+.section-title h3{font-size:20px;margin:0}
+.q-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.q{border:1px solid var(--line);background:#fff;border-radius:18px;padding:14px}.q.full{grid-column:1/-1}
+.q label{display:block;font-weight:700;margin-bottom:8px;font-size:14px}.q .help{font-size:12px;color:var(--muted);line-height:1.35;margin-top:6px}
+.req{color:var(--danger);font-weight:900;margin-left:3px}
+.control{width:100%;border:1px solid var(--line);border-radius:14px;padding:10px 12px;background:#fbfdfb;color:var(--ink);outline:none;font-size:14px}
+.control:focus{border-color:var(--brand2);box-shadow:0 0 0 4px rgba(18,98,79,.12)}textarea.control{min-height:90px;resize:vertical}
+.buttons{display:flex;gap:8px;flex-wrap:wrap}
+.choice{border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:999px;padding:8px 12px;font-size:13px}
+.choice.active{background:var(--brand);color:#fff;border-color:var(--brand)}
+.check-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.check-item{display:flex;gap:8px;align-items:flex-start;border:1px solid var(--line);border-radius:14px;padding:10px;background:#fbfdfb;font-size:13px}
+.geo-box,.photo-box{border:1px dashed #b9cac0;border-radius:16px;padding:12px;background:#fbfdfb}
+.preview-img{max-width:100%;max-height:140px;border-radius:12px;margin-top:8px;border:1px solid var(--line)}
+.roster-row{display:grid;grid-template-columns:1.2fr .8fr .6fr .5fr auto;gap:8px;align-items:center;margin-bottom:6px}
+.notice{border:1px solid #f0d79a;background:#fff9e9;border-radius:18px;padding:13px;color:#6e4d08;line-height:1.4}
+.success{border:1px solid #a7e0c8;background:#effbf5;color:#0f5b43;border-radius:18px;padding:13px}
+.error{border:1px solid #f2bbb6;background:#fff1f0;color:#8f1d16;border-radius:18px;padding:13px}
+.kpi{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;border:1px solid var(--line);border-radius:20px;background:#fff;padding:16px}
+.kpi b{font-size:26px;line-height:1}.kpi span{font-size:12px;color:var(--muted)}
+.bar-list{display:grid;gap:10px}
+.bar-row{display:grid;grid-template-columns:minmax(110px,1fr) 3fr 48px;gap:10px;align-items:center}
+.bar-track{height:11px;background:#e7efe9;border-radius:999px;overflow:hidden}
+.bar-fill{height:100%;background:linear-gradient(90deg,var(--brand2),var(--accent));border-radius:999px}
+.table-wrap{overflow:auto;border:1px solid var(--line);border-radius:18px;background:#fff}
+table{width:100%;border-collapse:collapse;min-width:680px}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);font-size:13px;vertical-align:top}
+th{background:#f3f7f3;color:#33443d;font-weight:800;position:sticky;top:0}
+tr:last-child td{border-bottom:0}tr:hover td{background:#fafdfa}
+.login-wrap{display:grid;place-items:center;min-height:100vh;padding:20px}
+.login-panel{max-width:420px;width:100%;background:rgba(255,255,255,.95);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:28px}
+.modal-back{position:fixed;inset:0;background:rgba(6,24,20,.52);z-index:20;display:grid;place-items:center;padding:20px}
+.modal{width:min(820px,100%);max-height:88vh;overflow:auto;background:#fff;border-radius:24px;box-shadow:0 30px 80px rgba(0,0,0,.28);padding:22px}
+.hidden{display:none!important}
+.loader{display:inline-block;width:18px;height:18px;border:3px solid rgba(15,61,51,.18);border-top-color:var(--brand);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.admin-links{display:grid;gap:8px}
+@media(max-width:980px){.app-shell{grid-template-columns:1fr}.sidebar{position:relative;height:auto}.main{padding:16px}.hero{grid-template-columns:1fr}.q-grid,.grid.cols-2,.grid.cols-3,.grid.cols-4{grid-template-columns:1fr}.topbar{flex-direction:column;align-items:flex-start}}
+@media(max-width:580px){.check-list{grid-template-columns:1fr}.hero-stat{grid-template-columns:1fr}.roster-row{grid-template-columns:1fr 1fr auto}}
+@media print{.sidebar,.topbar .userbox,.toolbar,.section-tabs{display:none}.app-shell{display:block}.main{padding:0}.card{box-shadow:none;border:1px solid #ddd}}
+</style>
+</head>
+<body>
+<div id="app"><div style="display:grid;place-items:center;height:100vh"><span class="loader" style="width:32px;height:32px;border-width:4px"></span></div></div>
+<div id="notif" style="position:fixed;top:16px;right:16px;z-index:999;max-width:380px"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   CONFIGURACIÓN — reemplazar con la URL del Web App desplegado
+   ═══════════════════════════════════════════════════════════════ */
+window.GAS_EXEC_URL = 'REEMPLAZAR_CON_URL_DEL_WEB_APP';
+
+/* ─── ESTADO ─── */
+var S = {
+  tab: 'home',
+  sessionToken: null,
+  session: null,
+  bootstrap: null,
+  schema: null,
+  values: {},
+  gps: {},
+  photos: {},
+  startTs: null,
+  dashData: null,
+  dashFilters: {},
+  responses: null,
+  detailRow: null,
+  users: null,
+  _charts: {},
+  _notifTimer: null
+};
+
+/* ─── CALL ─── */
+function call(fn) {
+  var args = Array.prototype.slice.call(arguments, 1);
+  var url = window.GAS_EXEC_URL;
+  if (!url || url.indexOf('REEMPLAZAR') >= 0) {
+    return Promise.reject(new Error('Configure window.GAS_EXEC_URL con la URL del Web App de Google Apps Script.'));
+  }
+  return fetch(url, {
+    method: 'POST',
+    redirect: 'follow',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({ fn: fn, args: args })
+  }).then(function(r) { return r.json(); })
+    .then(function(j) {
+      if (j && j.__error) throw new Error(j.__error);
+      return j && j.__result !== undefined ? j.__result : j;
+    });
+}
+
+/* ─── UTILS ─── */
+function esc(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function n(v) { return v == null ? '' : String(v); }
+
+function notify(msg, type) {
+  var d = document.getElementById('notif');
+  if (!d) return;
+  var cls = type === 'error' ? 'error' : type === 'warn' ? 'notice' : 'success';
+  d.innerHTML = '<div class="' + cls + '" style="box-shadow:0 8px 24px rgba(0,0,0,.14)">' + esc(msg) + '</div>';
+  clearTimeout(S._notifTimer);
+  S._notifTimer = setTimeout(function() { d.innerHTML = ''; }, 4500);
+}
+
+function pct(a, b) { return b ? Math.round(a / b * 100) : 0; }
+
+function uuid() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    var r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
+
+function saveDraft() {
+  try { localStorage.setItem('artesanos_draft', JSON.stringify({ values: S.values, gps: S.gps, startTs: S.startTs })); } catch (e) {}
+}
+function loadDraft() {
+  try {
+    var raw = localStorage.getItem('artesanos_draft');
+    if (raw) { var d = JSON.parse(raw); S.values = d.values || {}; S.gps = d.gps || {}; S.startTs = d.startTs || null; }
+  } catch (e) {}
+}
+function clearDraft() {
+  try { localStorage.removeItem('artesanos_draft'); } catch (e) {}
+  S.values = {}; S.gps = {}; S.photos = {}; S.startTs = null;
+}
+
+function saveSession() {
+  try {
+    if (S.sessionToken) localStorage.setItem('artesanos_session', JSON.stringify({ token: S.sessionToken, session: S.session }));
+    else localStorage.removeItem('artesanos_session');
+  } catch (e) {}
+}
+function loadSession() {
+  try {
+    var raw = localStorage.getItem('artesanos_session');
+    if (raw) { var d = JSON.parse(raw); S.sessionToken = d.token || null; S.session = d.session || null; }
+  } catch (e) {}
+}
+
+/* visible_if evaluation */
+function visible(q) {
+  var vi = q.visible_if;
+  if (!vi) return true;
+  var conditions = Array.isArray(vi) ? vi : [vi];
+  return conditions.every(function(c) {
+    var val = n(S.values[c.field]).toLowerCase();
+    if (c.values) return c.values.map(function(v) { return n(v).toLowerCase(); }).indexOf(val) >= 0;
+    return val === n(c.value).toLowerCase();
+  });
+}
+
+/* normalize chart items from server: {label, value} */
+function normItems(arr) {
+  return (arr || []).map(function(it) {
+    return { label: it.label || it.key || '—', v: Number(it.value || it.v || it.count || 0) };
+  });
+}
+
+/* ─── NAV ─── */
+function nav(tab) {
+  S.tab = tab;
+  render();
+}
+
+/* ═══════════════════════════════════════
+   RENDER ROOT
+   ═══════════════════════════════════════ */
+function render() {
+  var app = document.getElementById('app');
+  if (!app) return;
+
+  var loggedIn = !!S.sessionToken;
+  var publicSurvey = S.bootstrap && S.bootstrap.publicSurvey;
+
+  if (!S.bootstrap) {
+    app.innerHTML = '<div style="display:grid;place-items:center;height:100vh"><span class="loader" style="width:32px;height:32px;border-width:4px"></span></div>';
+    return;
+  }
+
+  if (!loggedIn && !publicSurvey) {
+    renderLogin(app);
+    return;
+  }
+
+  var tab = S.tab;
+  var bs = S.bootstrap || {};
+  var appInfo = bs.app || {};
+  var sess = S.session || {};
+  var canAdmin = sess.role === 'admin';
+  var requireAuth = !loggedIn && ['dashboard','responses','admin'].indexOf(tab) >= 0;
+  if (requireAuth) { renderLogin(app); return; }
+
+  var navItems = [
+    { id: 'home', icon: '🏠', label: 'Inicio' },
+    { id: 'survey', icon: '📋', label: 'Nueva Encuesta' },
+    { id: 'dashboard', icon: '📊', label: 'Tablero' },
+    { id: 'responses', icon: '📁', label: 'Respuestas' }
+  ];
+  if (canAdmin) navItems.push({ id: 'admin', icon: '⚙️', label: 'Administración' });
+
+  var sidebar = '<div class="sidebar">' +
+    '<div class="brand"><div class="brand-mark">A</div><div><h1>' + esc(appInfo.appShortName || 'Artesanos') + '</h1><p>' + esc(appInfo.orgName || 'Paracel S.A.') + '</p></div></div>' +
+    '<nav class="nav">' +
+    navItems.map(function(ni) {
+      return '<button class="' + (tab === ni.id ? 'active' : '') + '" onclick="nav(\'' + ni.id + '\')">' + ni.icon + ' ' + esc(ni.label) + '</button>';
+    }).join('') + '</nav>' +
+    '<div class="side-card"><h3>Sesión</h3>' +
+    (loggedIn
+      ? '<p>' + esc(sess.displayName || sess.username || '—') + '<br><span style="opacity:.7">' + esc(sess.role || '') + '</span></p>' +
+        '<button class="btn ghost" style="margin-top:8px;width:100%;font-size:12px" onclick="doLogout()">Cerrar sesión</button>'
+      : '<p>Modo público</p><button class="btn ghost" style="margin-top:8px;width:100%;font-size:12px" onclick="renderLogin(document.getElementById(\'app\'))">Iniciar sesión</button>'
+    ) + '</div></div>';
+
+  var mainContent = '';
+  if (tab === 'home') mainContent = buildHome();
+  else if (tab === 'survey') mainContent = buildSurvey();
+  else if (tab === 'dashboard') mainContent = buildDashboard();
+  else if (tab === 'responses') mainContent = buildResponses();
+  else if (tab === 'admin') mainContent = buildAdmin();
+
+  app.innerHTML = '<div class="app-shell">' + sidebar + '<div class="main">' + mainContent + '</div></div>';
+  afterRender(tab);
+}
+
+/* ═══════════════════════════════════════
+   LOGIN
+   ═══════════════════════════════════════ */
+function renderLogin(app) {
+  app.innerHTML = '<div class="login-wrap">' +
+    '<div class="login-panel">' +
+    '<div style="text-align:center;margin-bottom:22px">' +
+    '<div class="brand-mark" style="width:58px;height:58px;border-radius:20px;font-size:24px;margin:0 auto 14px"></div>' +
+    '<h2 style="margin:0 0 6px;font-size:22px">Artesanos · Isla Hermosa</h2>' +
+    '<p class="muted" style="margin:0;font-size:13px">Paracel S.A. · Monitor de Impacto Social</p></div>' +
+    '<div id="login-err"></div>' +
+    '<div style="display:grid;gap:12px">' +
+    '<div><label style="font-weight:700;display:block;margin-bottom:6px;font-size:13px">Usuario</label><input class="control" id="loginUser" type="text" placeholder="usuario" autocomplete="username"></div>' +
+    '<div><label style="font-weight:700;display:block;margin-bottom:6px;font-size:13px">Contraseña</label><input class="control" id="loginPass" type="password" placeholder="••••••" autocomplete="current-password"></div>' +
+    '<button class="btn" id="loginBtn" style="width:100%;margin-top:4px">Ingresar</button>' +
+    '</div></div></div>';
+  wireLogin();
+}
+
+function wireLogin() {
+  var btn = document.getElementById('loginBtn');
+  var passEl = document.getElementById('loginPass');
+  if (!btn) return;
+  function doLogin() {
+    var user = (document.getElementById('loginUser') || {}).value || '';
+    var pass = (passEl || {}).value || '';
+    var errEl = document.getElementById('login-err');
+    if (!user || !pass) { if (errEl) errEl.innerHTML = '<div class="error" style="margin-bottom:10px">Ingrese usuario y contraseña.</div>'; return; }
+    btn.disabled = true; btn.innerHTML = '<span class="loader"></span> Ingresando…';
+    call('login', user, pass)
+      .then(function(r) {
+        S.sessionToken = r.token;
+        S.session = r;
+        saveSession();
+        return call('getBootstrap', r.token);
+      })
+      .then(function(bs) {
+        S.bootstrap = bs;
+        if (bs.session) S.session = bs.session;
+        S.tab = 'home';
+        render();
+      })
+      .catch(function(e) {
+        var errEl = document.getElementById('login-err');
+        if (errEl) errEl.innerHTML = '<div class="error" style="margin-bottom:10px">' + esc(e.message) + '</div>';
+        btn.disabled = false; btn.innerHTML = 'Ingresar';
+      });
+  }
+  btn.onclick = doLogin;
+  if (passEl) passEl.onkeydown = function(e) { if (e.key === 'Enter') doLogin(); };
+}
+
+function doLogout() {
+  call('logout', S.sessionToken).catch(function() {});
+  S.sessionToken = null; S.session = null;
+  saveSession();
+  S.tab = 'home';
+  render();
+}
+
+/* ═══════════════════════════════════════
+   HOME
+   ═══════════════════════════════════════ */
+function buildHome() {
+  var appInfo = (S.bootstrap && S.bootstrap.app) || {};
+  var edition = appInfo.activeEdition || '—';
+  var loggedIn = !!S.sessionToken;
+  return '<div class="topbar"><div class="page-title"><h2>Bienvenido</h2>' +
+    '<p>' + esc(appInfo.appName || 'Encuesta a Artesanos · Isla Hermosa') + ' · Edición activa: <strong>' + esc(edition) + '</strong></p></div></div>' +
+    '<div class="hero">' +
+    '<div class="card"><h2>Relevamiento Artesanal<br>Isla Hermosa</h2>' +
+    '<p>Capture información socioeconómica, productiva y comercial de artesanos de la zona de Isla Hermosa. Los datos quedan almacenados en Google Sheets y Drive en tiempo real.</p>' +
+    '<div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap">' +
+    '<button class="btn" onclick="nav(\'survey\')">📋 Nueva encuesta</button>' +
+    '<button class="btn secondary" onclick="nav(\'dashboard\')">📊 Ver tablero</button>' +
+    '</div></div>' +
+    '<div class="card" style="background:linear-gradient(135deg,#0f3d33,#12624f);color:#fff">' +
+    '<h3 style="color:var(--accent2)">Acceso rápido</h3>' +
+    (loggedIn
+      ? '<p>Sesión activa: <strong>' + esc((S.session || {}).displayName || '—') + '</strong></p>'
+      : '<p style="opacity:.8;font-size:13px">Inicie sesión para acceder al tablero y al registro de respuestas.</p>' +
+        '<button class="btn" style="margin-top:10px;background:var(--accent2);color:#10231d" onclick="renderLogin(document.getElementById(\'app\'))">Iniciar sesión</button>') +
+    '<div class="hero-stat" style="margin-top:16px">' +
+    '<div class="stat" style="background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.15);color:#fff"><strong>GPS</strong><span style="color:rgba(255,255,255,.7)">Ubicación de entrevista y taller</span></div>' +
+    '<div class="stat" style="background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.15);color:#fff"><strong>Fotos</strong><span style="color:rgba(255,255,255,.7)">Evidencia comprimida en Drive</span></div>' +
+    '</div></div></div>';
+}
+
+/* ═══════════════════════════════════════
+   SURVEY
+   ═══════════════════════════════════════ */
+var survSec = 0;
+var survSubmitting = false;
+
+function buildSurvey() {
+  if (!S.schema) {
+    loadSchema();
+    return '<div class="topbar"><div class="page-title"><h2>📋 Nueva Encuesta</h2></div></div>' +
+      '<div class="card" style="text-align:center;padding:40px"><span class="loader"></span><p class="muted">Cargando cuestionario…</p></div>';
+  }
+  var sections = S.schema.sections || [];
+  if (!sections.length) return '<div class="card"><p class="muted">No hay secciones configuradas en el cuestionario.</p></div>';
+  if (survSec >= sections.length) survSec = 0;
+  var sec = sections[survSec];
+  var pctVal = Math.round((survSec / sections.length) * 100);
+
+  var html = '<div class="topbar"><div class="page-title"><h2>📋 Nueva Encuesta</h2><p>Sección ' + (survSec + 1) + ' de ' + sections.length + ': ' + esc(sec.label) + '</p></div></div>';
+  html += '<div class="card">';
+  html += '<div class="form-progress"><div style="width:' + pctVal + '%"></div></div>';
+  html += '<div class="section-tabs">';
+  sections.forEach(function(s, i) {
+    html += '<button class="' + (i === survSec ? 'active' : '') + '" onclick="gotoSurvSec(' + i + ')">' + esc(s.label) + '</button>';
+  });
+  html += '</div>';
+  html += '<div id="surv-body">' + buildSectionQuestions(sec) + '</div>';
+  html += '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-top:16px;padding-top:14px;border-top:1px solid var(--line)">';
+  html += '<div>';
+  if (survSec > 0) html += '<button class="btn secondary" onclick="gotoSurvSec(' + (survSec - 1) + ')">← Anterior</button>';
+  html += '</div><div style="display:flex;gap:8px;flex-wrap:wrap">';
+  html += '<button class="btn ghost" onclick="saveDraft();notify(\'Borrador guardado\',\'ok\')">💾 Guardar borrador</button>';
+  html += '<button class="btn ghost" onclick="clearDraft();S.tab=\'survey\';render()">🗑️ Limpiar</button>';
+  if (survSec < sections.length - 1) {
+    html += '<button class="btn" onclick="gotoSurvSec(' + (survSec + 1) + ')">Siguiente →</button>';
+  } else {
+    html += '<button class="btn" id="btnSubmit" onclick="submitSurveyNow()">✅ Enviar encuesta</button>';
+  }
+  html += '</div></div>';
+  html += '<div id="surv-result"></div>';
+  html += '</div>';
+  return html;
+}
+
+function buildSectionQuestions(sec) {
+  var qs = (sec.questions || []).filter(function(q) { return visible(q); });
+  if (!qs.length) return '<p class="muted" style="padding:20px">No hay preguntas visibles en esta sección con los valores actuales.</p>';
+  var html = '<div class="section-title"><h3>' + esc(sec.label) + '</h3></div>';
+  html += '<div class="q-grid">';
+  qs.forEach(function(q) {
+    var isFull = ['textarea','roster','photo','gps','checkbox'].indexOf(q.input_type) >= 0;
+    html += '<div class="q' + (isFull ? ' full' : '') + '">';
+    html += '<label>' + esc(q.label) + (q.required ? '<span class="req">*</span>' : '') + '</label>';
+    html += buildInput(q);
+    if (q.help_text) html += '<p class="help">' + esc(q.help_text) + '</p>';
+    html += '</div>';
+  });
+  html += '</div>';
+  return html;
+}
+
+function buildInput(q) {
+  var fn = q.field_name;
+  var val = n(S.values[fn]);
+  var t = q.input_type;
+
+  if (t === 'text' || t === 'email' || t === 'tel') {
+    return '<input class="control" type="' + esc(t) + '" value="' + esc(val) + '" placeholder="' + esc(q.label) + '" onchange="setVal(\'' + esc(fn) + '\',this.value)">';
+  }
+  if (t === 'number') {
+    return '<input class="control" type="number" value="' + esc(val) + '" onchange="setVal(\'' + esc(fn) + '\',this.value)">';
+  }
+  if (t === 'date') {
+    return '<input class="control" type="date" value="' + esc(val) + '" onchange="setVal(\'' + esc(fn) + '\',this.value)">';
+  }
+  if (t === 'select') {
+    return '<select class="control" onchange="setVal(\'' + esc(fn) + '\',this.value)">' +
+      '<option value="">— seleccione —</option>' +
+      (q.options || []).map(function(o) {
+        return '<option value="' + esc(o.value) + '"' + (val === n(o.value) ? ' selected' : '') + '>' + esc(o.label) + '</option>';
+      }).join('') + '</select>';
+  }
+  if (t === 'radio') {
+    return '<div class="buttons">' +
+      (q.options || []).map(function(o) {
+        return '<button type="button" class="choice' + (val === n(o.value) ? ' active' : '') + '" onclick="setVal(\'' + esc(fn) + '\',\'' + esc(o.value) + '\')">' + esc(o.label) + '</button>';
+      }).join('') + '</div>';
+  }
+  if (t === 'checkbox') {
+    var cur = []; try { cur = JSON.parse(S.values[fn] || '[]'); if (!Array.isArray(cur)) cur = []; } catch (e) { cur = []; }
+    return '<div class="check-list">' +
+      (q.options || []).map(function(o) {
+        var checked = cur.indexOf(n(o.value)) >= 0;
+        return '<label class="check-item"><input type="checkbox"' + (checked ? ' checked' : '') + ' onchange="toggleCheck(\'' + esc(fn) + '\',\'' + esc(o.value) + '\',this.checked)"> ' + esc(o.label) + '</label>';
+      }).join('') + '</div>';
+  }
+  if (t === 'textarea') {
+    return '<textarea class="control" onchange="setVal(\'' + esc(fn) + '\',this.value)">' + esc(val) + '</textarea>';
+  }
+  if (t === 'gps') {
+    var gv = S.gps[fn] || {};
+    var gstr = gv.lat ? ('Lat: ' + Number(gv.lat).toFixed(6) + ', Lng: ' + Number(gv.lng).toFixed(6) + (gv.accuracy ? ', ±' + Math.round(gv.accuracy) + 'm' : '')) : 'Sin captura';
+    return '<div class="geo-box"><p class="small muted" id="gps-' + esc(fn) + '">' + esc(gstr) + '</p>' +
+      '<button type="button" class="btn ghost" style="margin-top:8px" onclick="captureGps(\'' + esc(fn) + '\')">📍 Capturar GPS</button></div>';
+  }
+  if (t === 'photo') {
+    var pics = S.photos[fn] || [];
+    var prevs = pics.map(function(p, i) { return '<img class="preview-img" src="' + p.preview + '" alt="foto ' + (i + 1) + '">'; }).join('');
+    return '<div class="photo-box">' + (prevs || '<p class="small muted">Sin fotos adjuntas</p>') +
+      '<br><input type="file" accept="image/*" multiple style="margin-top:8px" onchange="addPhotos(\'' + esc(fn) + '\',this)"></div>';
+  }
+  if (t === 'roster') {
+    return buildRoster(fn);
+  }
+  return '<input class="control" type="text" value="' + esc(val) + '" onchange="setVal(\'' + esc(fn) + '\',this.value)">';
+}
+
+function buildRoster(fn) {
+  var rows = []; try { rows = JSON.parse(S.values[fn] || '[]'); if (!Array.isArray(rows)) rows = []; } catch (e) { rows = []; }
+  var html = '<div id="roster-' + esc(fn) + '">';
+  html += '<div class="roster-row" style="font-size:11px;color:var(--muted);font-weight:700"><span>Nombre</span><span>Relación</span><span>Sexo</span><span>Edad</span><span></span></div>';
+  rows.forEach(function(r, i) {
+    html += '<div class="roster-row">' +
+      '<input class="control" style="font-size:13px" placeholder="Nombre" value="' + esc(r.nombre || '') + '" onchange="rosterSet(\'' + esc(fn) + '\',' + i + ',\'nombre\',this.value)">' +
+      '<input class="control" style="font-size:13px" placeholder="Relación" value="' + esc(r.relacion || '') + '" onchange="rosterSet(\'' + esc(fn) + '\',' + i + ',\'relacion\',this.value)">' +
+      '<select class="control" style="font-size:13px" onchange="rosterSet(\'' + esc(fn) + '\',' + i + ',\'sexo\',this.value)">' +
+        '<option value="">—</option>' + ['Femenino','Masculino','Otro'].map(function(sx) { return '<option' + (r.sexo === sx ? ' selected' : '') + '>' + sx + '</option>'; }).join('') +
+      '</select>' +
+      '<input class="control" type="number" placeholder="Edad" value="' + esc(r.edad || '') + '" onchange="rosterSet(\'' + esc(fn) + '\',' + i + ',\'edad\',this.value)">' +
+      '<button type="button" class="btn danger" style="padding:8px 10px" onclick="rosterDel(\'' + esc(fn) + '\',' + i + ')">✕</button></div>';
+  });
+  html += '</div><button type="button" class="btn ghost" style="margin-top:8px;font-size:13px" onclick="rosterAdd(\'' + esc(fn) + '\')">+ Agregar miembro</button>';
+  return html;
+}
+
+function setVal(fn, val) { S.values[fn] = val; saveDraft(); refreshSurvBody(); }
+function toggleCheck(fn, val, checked) {
+  var cur = []; try { cur = JSON.parse(S.values[fn] || '[]'); if (!Array.isArray(cur)) cur = []; } catch (e) { cur = []; }
+  if (checked) { if (cur.indexOf(val) < 0) cur.push(val); } else { cur = cur.filter(function(v) { return v !== val; }); }
+  S.values[fn] = JSON.stringify(cur); saveDraft();
+}
+function gotoSurvSec(i) { survSec = i; render(); }
+function refreshSurvBody() {
+  if (!S.schema) return;
+  var sections = S.schema.sections || [];
+  var sec = sections[survSec];
+  var body = document.getElementById('surv-body');
+  if (sec && body) body.innerHTML = buildSectionQuestions(sec);
+}
+function captureGps(fn) {
+  var el = document.getElementById('gps-' + fn);
+  if (el) el.textContent = 'Obteniendo posición…';
+  if (!navigator.geolocation) { notify('Geolocalización no disponible en este dispositivo.', 'error'); return; }
+  navigator.geolocation.getCurrentPosition(function(pos) {
+    var g = { lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy, ts: new Date().toISOString() };
+    S.gps[fn] = g;
+    var str = 'Lat: ' + g.lat.toFixed(6) + ', Lng: ' + g.lng.toFixed(6) + ', ±' + Math.round(g.accuracy) + 'm';
+    if (el) el.textContent = str; saveDraft(); notify('GPS capturado: ' + str, 'ok');
+  }, function(err) {
+    if (el) el.textContent = 'Error: ' + err.message; notify('Error GPS: ' + err.message, 'error');
+  }, { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 });
+}
+function addPhotos(fn, input) {
+  if (!input.files || !input.files.length) return;
+  if (!S.photos[fn]) S.photos[fn] = [];
+  var files = Array.prototype.slice.call(input.files);
+  var pending = files.length;
+  files.forEach(function(file) {
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      S.photos[fn].push({ preview: e.target.result, dataBase64: e.target.result.split(',')[1] || '', mimeType: file.type, name: file.name, fieldName: fn });
+      pending--;
+      if (pending === 0) { refreshSurvBody(); notify(files.length + ' foto(s) agregada(s)', 'ok'); }
+    };
+    reader.readAsDataURL(file);
+  });
+}
+function rosterAdd(fn) {
+  var rows = []; try { rows = JSON.parse(S.values[fn] || '[]'); } catch (e) {}
+  rows.push({ nombre: '', relacion: '', sexo: '', edad: '' }); S.values[fn] = JSON.stringify(rows); refreshSurvBody();
+}
+function rosterDel(fn, idx) {
+  var rows = []; try { rows = JSON.parse(S.values[fn] || '[]'); } catch (e) {}
+  rows.splice(idx, 1); S.values[fn] = JSON.stringify(rows); refreshSurvBody();
+}
+function rosterSet(fn, idx, key, val) {
+  var rows = []; try { rows = JSON.parse(S.values[fn] || '[]'); } catch (e) {}
+  if (!rows[idx]) rows[idx] = {}; rows[idx][key] = val; S.values[fn] = JSON.stringify(rows); saveDraft();
+}
+
+function submitSurveyNow() {
+  if (survSubmitting) return;
+  var schema = S.schema;
+  var missing = [];
+  (schema.sections || []).forEach(function(sec) {
+    (sec.questions || []).forEach(function(q) {
+      if (q.required && visible(q)) {
+        var v = n(S.values[q.field_name]);
+        if (!v || v === '[]') missing.push(q.label);
+      }
+    });
+  });
+  if (missing.length) {
+    var res = document.getElementById('surv-result');
+    if (res) res.innerHTML = '<div class="error" style="margin-top:12px">Campos obligatorios sin completar: ' + missing.slice(0, 6).map(esc).join(', ') + (missing.length > 6 ? ' y ' + (missing.length - 6) + ' más' : '') + '.</div>';
+    notify('Faltan campos obligatorios', 'error'); return;
+  }
+  survSubmitting = true;
+  var btn = document.getElementById('btnSubmit');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="loader"></span> Enviando…'; }
+
+  var photoArr = [];
+  Object.keys(S.photos).forEach(function(fn) { (S.photos[fn] || []).forEach(function(p) { photoArr.push(p); }); });
+
+  var payload = {
+    source_uuid: uuid(),
+    source_version: 'artesanos-web-v1.0.0',
+    start_ts: S.startTs || new Date().toISOString(),
+    end_ts: new Date().toISOString(),
+    values: S.values,
+    gps: S.gps,
+    photos: photoArr
+  };
+
+  call('submitSurvey', payload, S.sessionToken || null)
+    .then(function(r) {
+      survSubmitting = false;
+      clearDraft(); survSec = 0;
+      var res = document.getElementById('surv-result');
+      if (res) res.innerHTML = '<div class="success" style="margin-top:14px">' +
+        '<strong>✅ Encuesta enviada correctamente.</strong><br>' +
+        'UUID: ' + esc(r.source_uuid) + '<br>' +
+        'Calidad: <strong>' + esc(r.calidad_estado) + '</strong>' +
+        (r.flags && r.flags.length ? ' · ' + r.flags.length + ' observación(es) de calidad' : '') +
+        '<div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">' +
+        '<button class="btn" onclick="S.dashData=null;nav(\'dashboard\')">Ver tablero actualizado</button>' +
+        '<button class="btn secondary" onclick="clearDraft();S.tab=\'survey\';render()">Nueva encuesta</button>' +
+        '</div></div>';
+      if (btn) { btn.disabled = false; btn.innerHTML = '✅ Enviar encuesta'; }
+    })
+    .catch(function(e) {
+      survSubmitting = false;
+      var res = document.getElementById('surv-result');
+      if (res) res.innerHTML = '<div class="error" style="margin-top:12px">Error al enviar: ' + esc(e.message) + '</div>';
+      if (btn) { btn.disabled = false; btn.innerHTML = '✅ Enviar encuesta'; }
+      notify('Error: ' + e.message, 'error');
+    });
+}
+
+function loadSchema() {
+  call('getSurveySchema').then(function(s) {
+    S.schema = s; if (!S.startTs) S.startTs = new Date().toISOString();
+    loadDraft(); render();
+  }).catch(function(e) { notify('Error al cargar cuestionario: ' + e.message, 'error'); });
+}
+
+/* ═══════════════════════════════════════
+   DASHBOARD
+   ═══════════════════════════════════════ */
+function buildDashboard() {
+  if (!S.dashData) {
+    loadDashboard();
+    return '<div class="topbar"><div class="page-title"><h2>📊 Tablero</h2></div></div>' +
+      '<div class="card" style="text-align:center;padding:40px"><span class="loader"></span><p class="muted">Cargando datos…</p></div>';
+  }
+  var dd = S.dashData;
+  var kpi = dd.kpi || {};
+  var charts = dd.charts || {};
+  var filterOpts = dd.filters || {};
+  var df = S.dashFilters || {};
+
+  var html = '<div class="topbar"><div class="page-title"><h2>📊 Tablero de Monitoreo</h2><p>Artesanos relevados · Isla Hermosa</p></div>' +
+    '<div class="userbox">' +
+    '<button class="btn ghost" id="btnDashRefresh">🔄 Actualizar</button>' +
+    '<button class="btn ghost" id="btnDashExcel">📊 Excel</button>' +
+    '<button class="btn ghost" id="btnExportCsv">⬇️ CSV</button>' +
+    '</div></div>';
+
+  /* filtros */
+  html += '<div class="card" style="padding:14px"><div class="toolbar">' +
+    '<input class="control" style="max-width:210px" placeholder="🔍 Buscar…" id="dashQ" value="' + esc(df.q || '') + '" oninput="S.dashFilters.q=this.value">' +
+    mkFilterSel('comunidad', 'Comunidad', filterOpts.comunidad, df.comunidad) +
+    mkFilterSel('sexo', 'Sexo', filterOpts.sexo, df.sexo) +
+    mkFilterSel('tipo_artesania_principal', 'Tipo artesanía', filterOpts.tipo_artesania_principal, df.tipo_artesania_principal) +
+    mkFilterSel('calidad_estado', 'Calidad', filterOpts.calidad_estado, df.calidad_estado) +
+    '<button class="btn" onclick="S.dashData=null;loadDashboard()">Filtrar</button>' +
+    '<button class="btn ghost" onclick="S.dashFilters={};S.dashData=null;loadDashboard()">Limpiar</button>' +
+    '</div></div>';
+
+  /* KPIs fila 1 */
+  html += '<div class="grid cols-4" style="margin-bottom:16px">' +
+    mkKpi('Total artesanos', n(kpi.total), '') +
+    mkKpi('Mujeres', n(kpi.mujeres), pct(kpi.mujeres, kpi.total) + '% del total') +
+    mkKpi('Con GPS', (kpi.pctGps || 0) + '%', kpi.total ? Math.round((kpi.pctGps || 0) / 100 * kpi.total) + ' registros' : '') +
+    mkKpi('Edad promedio', n(kpi.edadPromedio) || '—', 'años') +
+    '</div>';
+  /* KPIs fila 2 */
+  html += '<div class="grid cols-4" style="margin-bottom:18px">' +
+    mkKpi('Comunidad indígena', (kpi.pctIndigena || 0) + '%', '') +
+    mkKpi('Venta digital', (kpi.pctVentaDigital || 0) + '%', 'redes sociales') +
+    mkKpi('Con internet', (kpi.pctInternet || 0) + '%', '') +
+    mkKpi('Tamaño hogar prom.', n(kpi.tamanoHogarPromedio) || '—', 'miembros') +
+    '</div>';
+
+  /* gráficos Chart.js */
+  html += '<div class="grid cols-2" style="margin-bottom:18px">' +
+    '<div class="card"><h3>Por sexo</h3><div style="height:200px"><canvas id="ch-sexo"></canvas></div></div>' +
+    '<div class="card"><h3>Por grupo etario</h3><div style="height:200px"><canvas id="ch-edad"></canvas></div></div>' +
+    '<div class="card"><h3>Tipo de artesanía principal</h3><div style="height:220px"><canvas id="ch-tipo"></canvas></div></div>' +
+    '<div class="card"><h3>Canal de venta principal</h3><div style="height:220px"><canvas id="ch-canal"></canvas></div></div>' +
+    '</div>';
+
+  /* bar-lists */
+  html += '<div class="grid cols-2" style="margin-bottom:18px">' +
+    '<div class="card"><h3>Ingreso por artesanía</h3>' + mkBarList(normItems(charts.ingreso)) + '</div>' +
+    '<div class="card"><h3>Prioridad de apoyo</h3>' + mkBarList(normItems(charts.prioridad)) + '</div>' +
+    '</div>';
+  html += '<div class="grid cols-2" style="margin-bottom:18px">' +
+    '<div class="card"><h3>Por comunidad</h3>' + mkBarList(normItems(charts.comunidad)) + '</div>' +
+    '<div class="card"><h3>Materia prima principal</h3>' + mkBarList(normItems(charts.materia)) + '</div>' +
+    '</div>';
+  html += '<div class="grid cols-3" style="margin-bottom:18px">' +
+    '<div class="card"><h3>Asociatividad</h3>' + mkBarList(normItems(charts.asociacion)) + '</div>' +
+    '<div class="card"><h3>Formalización</h3>' + mkBarList(normItems(charts.formalizacion)) + '</div>' +
+    '<div class="card"><h3>Interés programa Paracel</h3>' + mkBarList(normItems(charts.interes)) + '</div>' +
+    '</div>';
+
+  /* resumen ejecutivo */
+  html += '<div class="card">' + buildExecSummary(dd) + '</div>';
+
+  /* últimas respuestas */
+  if (dd.rowsPreview && dd.rowsPreview.length) {
+    html += '<div class="card"><h3>Últimas respuestas registradas</h3>' + mkPreviewTable(dd.rowsPreview) + '</div>';
+  }
+
+  return html;
+}
+
+function mkKpi(label, value, sub) {
+  return '<div class="kpi"><div><b>' + esc(value) + '</b><span>' + esc(sub) + '</span></div><span>' + esc(label) + '</span></div>';
+}
+
+function mkFilterSel(field, label, items, current) {
+  var opts = '<option value="">Todos (' + esc(label) + ')</option>';
+  (items || []).forEach(function(it) {
+    opts += '<option value="' + esc(it.label) + '"' + (current === it.label ? ' selected' : '') + '>' + esc(it.label) + ' (' + (it.v || it.value || 0) + ')</option>';
+  });
+  return '<select class="control" style="max-width:155px" onchange="S.dashFilters.' + field + '=this.value">' + opts + '</select>';
+}
+
+function mkBarList(items) {
+  if (!items || !items.length) return '<p class="muted small">Sin datos</p>';
+  var mx = items[0].v || 1;
+  return '<div class="bar-list">' + items.slice(0, 9).map(function(it) {
+    var pv = mx ? Math.round(it.v / mx * 100) : 0;
+    return '<div class="bar-row"><span class="small" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + esc(it.label) + '">' + esc(it.label) + '</span>' +
+      '<div class="bar-track"><div class="bar-fill" style="width:' + pv + '%"></div></div>' +
+      '<span class="small muted">' + it.v + '</span></div>';
+  }).join('') + '</div>';
+}
+
+function mkPreviewTable(rows) {
+  return '<div class="table-wrap"><table><thead><tr>' +
+    '<th>ID</th><th>Nombre</th><th>Sexo</th><th>Comunidad</th><th>Tipo artesanía</th><th>Canal venta</th><th>Calidad</th>' +
+    '</tr></thead><tbody>' +
+    rows.map(function(r) {
+      return '<tr style="cursor:pointer" onclick="showDetail(\'' + esc(r.source_uuid) + '\')">' +
+        '<td>' + esc(r.respondente_id || '—') + '</td>' +
+        '<td>' + esc(r.nombre_completo || '—') + '</td>' +
+        '<td>' + esc(r.sexo || '—') + '</td>' +
+        '<td>' + esc(r.comunidad || '—') + '</td>' +
+        '<td>' + esc(r.tipo_artesania_principal || '—') + '</td>' +
+        '<td>' + esc(r.principal_canal_venta || '—') + '</td>' +
+        '<td><span class="pill ' + (r.calidad_estado === 'OK' ? 'ok' : r.calidad_estado ? 'warn' : '') + '">' + esc(r.calidad_estado || '—') + '</span></td>' +
+        '</tr>';
+    }).join('') + '</tbody></table></div>';
+}
+
+function buildExecSummary(dd) {
+  var kpi = dd.kpi || {};
+  var charts = dd.charts || {};
+  var total = Number(kpi.total || 0);
+  if (!total) return '<h3>Resumen ejecutivo</h3><p class="muted">No hay datos suficientes para generar el resumen.</p>';
+
+  function top(arr, n_items) {
+    var items = normItems(arr);
+    if (!items.length) return '—';
+    return items.slice(0, n_items || 3).map(function(it) { return it.label + ' (' + it.v + ')'; }).join(', ');
+  }
+
+  return '<h3 style="margin-bottom:12px">Resumen ejecutivo</h3>' +
+    '<p>El presente relevamiento registra un total de <strong>' + total + ' artesanos y artesanas</strong> en la zona de Isla Hermosa. Del total relevado, <strong>' + (kpi.mujeres || 0) + ' son mujeres (' + (kpi.pctMujeres || 0) + '%)</strong> y ' + (kpi.hombres || 0) + ' son hombres. La edad promedio registrada es de <strong>' + (kpi.edadPromedio || 'N/D') + ' años</strong>, con un tamaño de hogar promedio de <strong>' + (kpi.tamanoHogarPromedio || 'N/D') + ' miembros</strong>.</p>' +
+    '<p>En cuanto al perfil productivo, los principales tipos de artesanía identificados son: <strong>' + top(charts.tipo, 3) + '</strong>. Las materias primas más utilizadas incluyen: ' + top(charts.materia, 3) + '. El ' + (kpi.pctIndigena || 0) + '% de los entrevistados pertenece a comunidades indígenas.</p>' +
+    '<p>Respecto a la comercialización, los canales de venta más frecuentes son: <strong>' + top(charts.canal, 3) + '</strong>. Las bandas de ingreso por artesanía más reportadas son: ' + top(charts.ingreso, 2) + '.</p>' +
+    '<p>Las comunidades con mayor representación son: <strong>' + top(charts.comunidad, 3) + '</strong>. En materia de asociatividad y formalización: ' + top(charts.asociacion, 2) + ' en cuanto a participación en asociaciones; ' + top(charts.formalizacion, 2) + ' en formalización.</p>' +
+    '<p>En conectividad digital, el <strong>' + (kpi.pctInternet || 0) + '%</strong> dispone de acceso a internet y el <strong>' + (kpi.pctVentaDigital || 0) + '%</strong> vende a través de redes sociales. Las principales prioridades de apoyo son: <strong>' + top(charts.prioridad, 3) + '</strong>.</p>' +
+    '<p>La cobertura de GPS asciende al <strong>' + (kpi.pctGps || 0) + '%</strong> de los registros. Se relevaron <strong>' + (kpi.fotos || 0) + ' fotografías</strong> de evidencia. La duración promedio de cada entrevista fue de <strong>' + (kpi.duracionPromedio || 'N/D') + ' minutos</strong>.</p>';
+}
+
+function loadDashboard() {
+  call('getDashboardSummary', S.sessionToken, S.dashFilters || {})
+    .then(function(dd) {
+      S.dashData = dd;
+      render();
+      drawDashCharts(dd);
+    })
+    .catch(function(e) { notify('Error al cargar tablero: ' + e.message, 'error'); });
+}
+
+function drawDashCharts(dd) {
+  var charts = dd.charts || {};
+  var COLORS = ['#0f3d33','#12624f','#c8a24a','#e5c66a','#63766d','#4a7c59','#b7791f','#13795b'];
+
+  function mkChart(id, items, type) {
+    var canvas = document.getElementById(id);
+    if (!canvas) return;
+    if (S._charts[id]) { try { S._charts[id].destroy(); } catch (e) {} }
+    var its = normItems(items).slice(0, 8);
+    var labels = its.map(function(x) { return x.label; });
+    var data = its.map(function(x) { return x.v; });
+    var isDoughnut = type === 'doughnut';
+    S._charts[id] = new Chart(canvas, {
+      type: type || 'bar',
+      data: {
+        labels: labels,
+        datasets: [{
+          data: data,
+          backgroundColor: isDoughnut ? COLORS : COLORS[0],
+          borderRadius: isDoughnut ? 0 : 6,
+          borderWidth: isDoughnut ? 2 : 0,
+          borderColor: '#fff'
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: isDoughnut, position: 'right', labels: { font: { size: 11 }, boxWidth: 14 } }
+        },
+        scales: isDoughnut ? {} : {
+          x: { ticks: { font: { size: 11 }, maxRotation: 35 } },
+          y: { beginAtZero: true, ticks: { font: { size: 11 } } }
+        }
+      }
+    });
+  }
+
+  setTimeout(function() {
+    mkChart('ch-sexo', charts.sexo, 'doughnut');
+    mkChart('ch-edad', charts.edad, 'bar');
+    mkChart('ch-tipo', charts.tipo, 'bar');
+    mkChart('ch-canal', charts.canal, 'bar');
+  }, 80);
+}
+
+/* ═══════════════════════════════════════
+   RESPONSES
+   ═══════════════════════════════════════ */
+function buildResponses() {
+  if (!S.responses) {
+    loadResponses({});
+    return '<div class="topbar"><div class="page-title"><h2>📁 Respuestas</h2></div></div>' +
+      '<div class="card" style="text-align:center;padding:40px"><span class="loader"></span><p class="muted">Cargando…</p></div>';
+  }
+  var rows = S.responses.rows || [];
+  var html = '<div class="topbar"><div class="page-title"><h2>📁 Respuestas</h2>' +
+    '<p>' + rows.length + ' registros' + (S.responses.limited ? ' (límite: mostrando primeros 200)' : '') + '</p></div>' +
+    '<div class="userbox"><button class="btn" onclick="S.responses=null;render()">🔄 Actualizar</button></div></div>';
+
+  html += '<div class="card" style="padding:14px"><div class="toolbar">' +
+    '<input class="control" style="max-width:240px" placeholder="🔍 Buscar nombre, CI, comunidad…" id="respQ">' +
+    '<button class="btn" onclick="doRespFilter()">Filtrar</button>' +
+    '<button class="btn ghost" onclick="S.responses=null;render()">Limpiar</button>' +
+    '</div></div>';
+
+  if (!rows.length) return html + '<div class="card"><p class="muted">No se encontraron registros.</p></div>';
+
+  html += '<div class="card"><div class="table-wrap"><table><thead><tr>' +
+    '<th>ID</th><th>Fecha</th><th>Nombre</th><th>Sexo</th><th>Comunidad</th><th>Tipo artesanía</th><th>Canal venta</th><th>Calidad</th><th></th>' +
+    '</tr></thead><tbody>' +
+    rows.map(function(r) {
+      return '<tr><td>' + esc(r.respondente_id || '—') + '</td>' +
+        '<td>' + esc(r.fecha_encuesta || '—') + '</td>' +
+        '<td>' + esc(r.nombre_completo || '—') + '</td>' +
+        '<td>' + esc(r.sexo || '—') + '</td>' +
+        '<td>' + esc(r.comunidad || '—') + '</td>' +
+        '<td>' + esc(r.tipo_artesania_principal || '—') + '</td>' +
+        '<td>' + esc(r.principal_canal_venta || '—') + '</td>' +
+        '<td><span class="pill ' + (r.calidad_estado === 'OK' ? 'ok' : r.calidad_estado ? 'warn' : '') + '">' + esc(r.calidad_estado || '—') + '</span></td>' +
+        '<td><button class="btn ghost" style="padding:5px 10px;font-size:12px" onclick="showDetail(\'' + esc(r.source_uuid) + '\')">Ver</button></td></tr>';
+    }).join('') + '</tbody></table></div></div>';
+
+  if (S.detailRow) html += buildDetailModal(S.detailRow);
+  return html;
+}
+
+function loadResponses(filters) {
+  call('listResponses', S.sessionToken, filters || {}, 200)
+    .then(function(rd) { S.responses = rd; render(); })
+    .catch(function(e) { notify('Error: ' + e.message, 'error'); });
+}
+function doRespFilter() {
+  var q = (document.getElementById('respQ') || {}).value || '';
+  S.responses = null;
+  loadResponses({ q: q });
+}
+function showDetail(srcUuid) {
+  call('getResponseDetail', S.sessionToken, srcUuid)
+    .then(function(row) { S.detailRow = row; render(); })
+    .catch(function(e) { notify('Error: ' + e.message, 'error'); });
+}
+function buildDetailModal(row) {
+  var keys = Object.keys(row).filter(function(k) { return k !== '__rowNum'; });
+  return '<div class="modal-back" onclick="if(event.target===this){S.detailRow=null;render()}">' +
+    '<div class="modal">' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">' +
+    '<h3>' + esc(row.respondente_id || row.source_uuid || 'Detalle') + '</h3>' +
+    '<button class="btn ghost" onclick="S.detailRow=null;render()">✕ Cerrar</button></div>' +
+    '<div class="table-wrap"><table><tbody>' +
+    keys.map(function(k) {
+      return '<tr><td style="font-weight:700;white-space:nowrap;color:var(--muted)">' + esc(k) + '</td><td style="word-break:break-all">' + esc(n(row[k])) + '</td></tr>';
+    }).join('') + '</tbody></table></div></div></div>';
+}
+
+/* ═══════════════════════════════════════
+   ADMIN
+   ═══════════════════════════════════════ */
+function buildAdmin() {
+  var sess = S.session || {};
+  if (sess.role !== 'admin') return '<div class="card"><p class="error">Acceso restringido a administradores.</p></div>';
+
+  var html = '<div class="topbar"><div class="page-title"><h2>⚙️ Administración</h2></div></div>';
+  html += '<div class="grid cols-2">';
+
+  /* herramientas */
+  html += '<div class="card"><h3>Herramientas</h3>' +
+    '<div class="admin-links">' +
+    '<button class="btn" id="btnRebuild" onclick="doRebuild()">🔄 Reconstruir analítica</button>' +
+    '<button class="btn secondary" onclick="doExportCsv()">⬇️ Exportar CSV</button>' +
+    '<button class="btn secondary" onclick="doOpenSheet()">📊 Abrir planilla</button>' +
+    '</div><div id="admin-result" style="margin-top:12px"></div></div>';
+
+  /* usuarios */
+  html += '<div class="card"><h3>Usuarios</h3>';
+  if (!S.users) { html += '<div class="loader"></div>'; loadUsers(); }
+  else { html += mkUsersTable(S.users); }
+  html += '</div></div>';
+
+  /* crear/actualizar usuario */
+  html += '<div class="card"><h3>Crear / actualizar usuario</h3>' +
+    '<div class="q-grid">' +
+    '<div class="q"><label>Usuario<span class="req">*</span></label><input class="control" id="uf-user" placeholder="usuario"></div>' +
+    '<div class="q"><label>Nombre</label><input class="control" id="uf-name" placeholder="Nombre completo"></div>' +
+    '<div class="q"><label>Rol</label><select class="control" id="uf-role"><option>viewer</option><option>editor</option><option>admin</option></select></div>' +
+    '<div class="q"><label>Contraseña temporal</label><input class="control" id="uf-pass" type="password" placeholder="Dejar vacío para no cambiar"></div>' +
+    '</div>' +
+    '<button class="btn" style="margin-top:12px" onclick="doSaveUser()">Guardar usuario</button>' +
+    '<div id="uf-result" style="margin-top:10px"></div></div>';
+
+  /* cambiar contraseña */
+  html += '<div class="card"><h3>Cambiar mi contraseña</h3>' +
+    '<div class="q-grid">' +
+    '<div class="q"><label>Contraseña actual</label><input class="control" id="cp-cur" type="password"></div>' +
+    '<div class="q"><label>Nueva contraseña</label><input class="control" id="cp-new" type="password"></div>' +
+    '</div>' +
+    '<button class="btn" style="margin-top:12px" onclick="doChangePass()">Cambiar contraseña</button>' +
+    '<div id="cp-result" style="margin-top:10px"></div></div>';
+
+  return html;
+}
+
+function mkUsersTable(users) {
+  return '<div class="table-wrap"><table><thead><tr><th>Usuario</th><th>Nombre</th><th>Rol</th><th>Activo</th></tr></thead><tbody>' +
+    (users || []).map(function(u) {
+      return '<tr><td>' + esc(u.username) + '</td><td>' + esc(u.display_name || '—') + '</td><td>' + esc(u.role || '—') + '</td><td>' + esc(u.active || '—') + '</td></tr>';
+    }).join('') + '</tbody></table></div>';
+}
+function loadUsers() {
+  call('listUsers', S.sessionToken)
+    .then(function(us) { S.users = us; render(); })
+    .catch(function(e) { notify('Error: ' + e.message, 'error'); });
+}
+function doRebuild() {
+  var btn = document.getElementById('btnRebuild');
+  var res = document.getElementById('admin-result');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="loader"></span> Procesando…'; }
+  call('rebuildAnalytics', S.sessionToken)
+    .then(function(r) {
+      if (btn) { btn.disabled = false; btn.innerHTML = '🔄 Reconstruir analítica'; }
+      if (res) res.innerHTML = '<div class="success">Analítica reconstruida: ' + r.rows + ' filas, ' + r.longRows + ' filas long.</div>';
+      notify('Analítica reconstruida', 'ok');
+    })
+    .catch(function(e) {
+      if (btn) { btn.disabled = false; btn.innerHTML = '🔄 Reconstruir analítica'; }
+      if (res) res.innerHTML = '<div class="error">' + esc(e.message) + '</div>';
+    });
+}
+function doExportCsv() {
+  call('exportResponsesCsv', S.sessionToken, {})
+    .then(function(csv) {
+      var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a'); a.href = url; a.download = 'artesanos_respuestas.csv'; a.click();
+      setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
+      notify('CSV descargado', 'ok');
+    })
+    .catch(function(e) { notify('Error: ' + e.message, 'error'); });
+}
+function doOpenSheet() {
+  call('getSpreadsheetLinks', S.sessionToken)
+    .then(function(links) {
+      var url = links.spreadsheetUrl || links.respuestas || links.spreadsheet;
+      if (url) window.open(url, '_blank');
+      else notify('No se encontró URL de planilla', 'warn');
+    })
+    .catch(function(e) { notify('Error: ' + e.message, 'error'); });
+}
+function doSaveUser() {
+  var username = (document.getElementById('uf-user') || {}).value || '';
+  var display_name = (document.getElementById('uf-name') || {}).value || '';
+  var role = (document.getElementById('uf-role') || {}).value || 'viewer';
+  var password_temporal = (document.getElementById('uf-pass') || {}).value || '';
+  var res = document.getElementById('uf-result');
+  if (!username) { if (res) res.innerHTML = '<div class="error">Usuario obligatorio.</div>'; return; }
+  call('saveUser', S.sessionToken, { username: username, display_name: display_name, role: role, password_temporal: password_temporal })
+    .then(function(r) {
+      if (res) res.innerHTML = '<div class="success">' + (r.created ? 'Usuario creado.' : 'Usuario actualizado.') + '</div>';
+      S.users = null; render();
+    })
+    .catch(function(e) { if (res) res.innerHTML = '<div class="error">' + esc(e.message) + '</div>'; });
+}
+function doChangePass() {
+  var cur = (document.getElementById('cp-cur') || {}).value || '';
+  var nw = (document.getElementById('cp-new') || {}).value || '';
+  var res = document.getElementById('cp-result');
+  if (!cur || !nw) { if (res) res.innerHTML = '<div class="error">Complete ambos campos.</div>'; return; }
+  call('changePassword', S.sessionToken, cur, nw)
+    .then(function() { if (res) res.innerHTML = '<div class="success">Contraseña actualizada.</div>'; })
+    .catch(function(e) { if (res) res.innerHTML = '<div class="error">' + esc(e.message) + '</div>'; });
+}
+
+/* ─── afterRender hooks ─── */
+function afterRender(tab) {
+  if (tab === 'dashboard') {
+    var r = document.getElementById('btnDashRefresh');
+    var e = document.getElementById('btnDashExcel');
+    var c = document.getElementById('btnExportCsv');
+    if (r) r.onclick = function() { S.dashData = null; loadDashboard(); };
+    if (e) e.onclick = doOpenSheet;
+    if (c) c.onclick = doExportCsv;
+    if (S.dashData) drawDashCharts(S.dashData);
+  }
+}
+
+/* ═══════════════════════════════════════
+   INIT
+   ═══════════════════════════════════════ */
+function init() {
+  loadSession();
+  call('getBootstrap', S.sessionToken || '')
+    .then(function(bs) {
+      S.bootstrap = bs;
+      if (bs.session) {
+        S.session = bs.session;
+      } else if (!bs.publicSurvey) {
+        S.sessionToken = null; S.session = null;
+      }
+      render();
+    })
+    .catch(function(e) {
+      S.bootstrap = { publicSurvey: false };
+      notify('No se pudo conectar con el servidor: ' + e.message, 'error');
+      render();
+    });
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
