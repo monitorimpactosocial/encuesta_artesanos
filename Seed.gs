@@ -273,6 +273,18 @@ function seedUsers_() {
   hashSeedUsers_();
 }
 
+function resetUsers() {
+  var rows = [
+    ['admin','Administrador','admin','','paracel2026','SI','NO','Usuario administrador principal.'],
+    ['user','Visualizador','viewer','','123','SI','NO','Usuario de consulta y llenado de cuestionario.'],
+    ['diego','Diego Meza','admin','','456','SI','NO','Usuario administrador.'],
+    ['lati','Lati','admin','','789','SI','NO','Usuario administrador.']
+  ];
+  replaceSheetData_(APP_CFG.SHEETS.USERS, USER_HEADERS_, rows);
+  hashSeedUsers_();
+  return { ok: true, users: rows.length };
+}
+
 function seedAll() {
   seedConfig_();
   seedEditions_();
