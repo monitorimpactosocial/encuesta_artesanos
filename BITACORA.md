@@ -104,3 +104,37 @@
 4. **Cambiar credenciales** — Inmediatamente despues de confirmar el login. Registrar solo el hecho, nunca las nuevas contrasenas.
 5. **Parity Client.html / index.html** — Evaluar si se requiere portar mejoras adicionales (visible_if avanzado, compresion de fotos, etc.) a `Client.html`.
 6. **QA end-to-end** — Formulario completo, GPS, foto, envio, dashboard, listado, CSV y reconstruccion analitica.
+
+## 2026-05-05 - Deploy completo del nuevo proyecto Apps Script standalone
+
+### Acciones ejecutadas
+- Diagnostico del Sheet: CONFIG/USUARIOS/CUESTIONARIO/CATALOGOS vacios; RESPUESTAS con esquema incorrecto (de encuesta colaboradores).
+- `clasp` autenticado como `monitorimpactosocial@gmail.com` (token activo en `.clasprc.json`).
+- Proyecto Apps Script standalone creado con `clasp create`:
+  - Script ID: `13Ex164UGgCecVYV8CrX80-FndLRmr5jjFlulpYt__iysrSePt3qYRAov`
+  - URL editor: `https://script.google.com/d/13Ex164UGgCecVYV8CrX80-FndLRmr5jjFlulpYt__iysrSePt3qYRAov/edit`
+- `clasp push` exitoso: 13 archivos subidos (todos los `.gs`, `.html` y `appsscript.json`).
+- `appsscript.json` actualizado con `webapp` (ANYONE_ANONYMOUS, USER_DEPLOYING) y `executionApi`, timezone America/Asuncion, oauthScopes correctos.
+- Web App desplegada via Apps Script API:
+  - Deployment ID: `AKfycbwTpwf0GoONoPOEJnE-IxoDiYofcB54c_aQBoPlvaCrjYcJ_RNhdxqJC9dEClZH0Kk`
+  - URL `/exec`: `https://script.google.com/macros/s/AKfycbwTpwf0GoONoPOEJnE-IxoDiYofcB54c_aQBoPlvaCrjYcJ_RNhdxqJC9dEClZH0Kk/exec`
+  - Version activa: 3 (version de produccion sin funciones de setup expuestas)
+- `index.html`: `GAS_EXEC_URL` actualizado a la nueva URL.
+- `.clasp.json` creado con el script ID real (reemplaza `.clasp.example.json`).
+
+### Bloqueante pendiente (una accion manual del usuario)
+La Web App muestra "Authorization needed" porque el propietario (`monitorimpactosocial@gmail.com`) aun no ha autorizado los scopes del nuevo proyecto (Sheets, Drive). La Execution API remota fue bloqueada (403) porque el token de clasp no incluye los scopes de ejecucion del script.
+
+**Accion requerida: ejecutar `runSetup()` desde el editor del nuevo proyecto**
+1. Abrir: `https://script.google.com/d/13Ex164UGgCecVYV8CrX80-FndLRmr5jjFlulpYt__iysrSePt3qYRAov/edit`
+2. Seleccionar funcion `runSetup` en el dropdown.
+3. Hacer clic en "Ejecutar".
+4. Autorizar los permisos solicitados (Sheets + Drive) cuando aparezca el dialogo.
+5. Confirmar que el log muestra `{ ok: true, spreadsheetId: ... }`.
+
+Esto inicializa el Sheet (CONFIG, EDICIONES, USUARIOS, CUESTIONARIO, CATALOGOS, RESPUESTAS correcto) y autoriza el proyecto para que la Web App funcione sin la pantalla de autorizacion.
+
+### Proximos pasos tras la ejecucion de runSetup()
+1. Probar login en la Web App: `admin/123` y `diego/456`.
+2. Cambiar contrasenas iniciales.
+3. QA end-to-end del formulario.
