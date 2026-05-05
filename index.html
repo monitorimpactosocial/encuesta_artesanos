@@ -4,8 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Encuesta Artesanos · Isla Hermosa · Paracel S.A.</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0f3d33">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
 <style>
 :root{
   --bg:#f2f6f4;--bg2:#e5ede9;--card:#ffffff;--ink:#0e2118;--muted:#5a6e66;
@@ -230,6 +233,8 @@ var S = {
   _charts: {},    // track Chart.js instances to destroy on re-render
   _notifTimer: null
 };
+var mapInstances = {}; // fn -> L.Map
+var mapMarkers  = {}; // fn -> L.Marker
 
 /* ─── API CALL ─── */
 function call(fn) {
@@ -659,11 +664,19 @@ function buildInput(q) {
   if (t === 'geolocation' || t === 'gps') {
     var gv = S.gps[fn] || {};
     var gstr = gv.lat
-      ? 'Lat: ' + Number(gv.lat).toFixed(6) + ', Lng: ' + Number(gv.lng).toFixed(6) + (gv.accuracy ? ' · ±' + Math.round(gv.accuracy) + 'm' : '')
+      ? 'Lat: ' + Number(gv.lat).toFixed(6) + ', Lng: ' + Number(gv.lng).toFixed(6) +
+        (gv.accuracy ? ' · ±' + Math.round(gv.accuracy) + 'm' : (gv.manual ? ' · (manual)' : ''))
       : 'Sin captura';
     return '<div class="geo-box">' +
       '<p class="geo-status" id="gps-' + esc(fn) + '">' + esc(gstr) + '</p>' +
-      '<button type="button" class="btn ghost" style="font-size:12.5px" onclick="captureGps(\'' + fn + '\')">📍 Capturar GPS</button>' +
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">' +
+      '<button type="button" class="btn ghost" style="font-size:12.5px" onclick="captureGps(\'' + esc(fn) + '\')">📍 Capturar GPS</button>' +
+      '<button type="button" class="btn ghost" style="font-size:12.5px" onclick="toggleGeoMap(\'' + esc(fn) + '\')">🗺 Ver / editar en mapa</button>' +
+      '</div>' +
+      '<div id="mapwrap-' + esc(fn) + '" style="display:none;height:280px;border-radius:12px;overflow:hidden;border:1px solid var(--line)">' +
+      '<div id="mapbox-' + esc(fn) + '" style="width:100%;height:100%"></div>' +
+      '</div>' +
+      '<p class="small muted" style="margin-top:4px">El mapa permite ajustar el punto manualmente si el GPS no es preciso.</p>' +
       '</div>';
   }
   if (t === 'photo') {
@@ -733,7 +746,7 @@ function captureGps(fn) {
   if (el) el.textContent = 'Obteniendo posición…';
   if (!navigator.geolocation) {
     notify('Geolocalización no disponible en este dispositivo.', 'error');
-    if (el) el.textContent = 'No disponible';
+    if (el) el.textContent = 'No disponible — use el mapa para marcar manualmente.';
     return;
   }
   navigator.geolocation.getCurrentPosition(
@@ -742,15 +755,66 @@ function captureGps(fn) {
       S.gps[fn] = g;
       var str = 'Lat: ' + g.lat.toFixed(6) + ', Lng: ' + g.lng.toFixed(6) + ' · ±' + Math.round(g.accuracy) + 'm';
       if (el) el.textContent = str;
+      // Actualizar mapa si está abierto
+      if (mapInstances[fn]) {
+        var ll = [g.lat, g.lng];
+        mapInstances[fn].setView(ll, 17);
+        mapMarkers[fn].setLatLng(ll).setOpacity(1);
+      }
       saveDraft();
       notify('GPS capturado · ±' + Math.round(g.accuracy) + 'm', 'ok');
     },
     function(err) {
-      if (el) el.textContent = 'Error: ' + err.message;
-      notify('Error GPS: ' + err.message, 'error');
+      if (el) el.textContent = 'GPS no disponible — use el mapa para marcar manualmente.';
+      notify('GPS no disponible: ' + err.message, 'error');
     },
     { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
   );
+}
+
+function toggleGeoMap(fn) {
+  var wrap = document.getElementById('mapwrap-' + fn);
+  if (!wrap) return;
+  var visible = wrap.style.display !== 'none';
+  wrap.style.display = visible ? 'none' : 'block';
+  if (!visible) setTimeout(function() { initGeoMap(fn); }, 60);
+}
+
+function initGeoMap(fn) {
+  if (mapInstances[fn]) { mapInstances[fn].invalidateSize(); return; }
+  var container = document.getElementById('mapbox-' + fn);
+  if (!container) return;
+  // Centro por defecto: Isla Hermosa / Paso Barreto
+  var defLat = -22.08, defLng = -57.93, defZoom = 14;
+  var gv = S.gps[fn] || {};
+  var lat = gv.lat || defLat, lng = gv.lng || defLng;
+  var map = L.map(container, { attributionControl: true }).setView([lat, lng], gv.lat ? 17 : defZoom);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    maxZoom: 19
+  }).addTo(map);
+  var marker = L.marker([lat, lng], { draggable: true, opacity: gv.lat ? 1 : 0.5 }).addTo(map);
+  if (!gv.lat) {
+    marker.bindPopup('Toque el mapa o arrastre el marcador para marcar la ubicación.').openPopup();
+  }
+  map.on('click', function(e) {
+    marker.setLatLng(e.latlng).setOpacity(1);
+    marker.closePopup();
+    updateGpsFromMap(fn, e.latlng.lat, e.latlng.lng);
+  });
+  marker.on('dragend', function() {
+    var ll = marker.getLatLng();
+    updateGpsFromMap(fn, ll.lat, ll.lng);
+  });
+  mapInstances[fn] = map;
+  mapMarkers[fn] = marker;
+}
+
+function updateGpsFromMap(fn, lat, lng) {
+  S.gps[fn] = { lat: lat, lng: lng, accuracy: null, manual: true, ts: new Date().toISOString() };
+  var el = document.getElementById('gps-' + fn);
+  if (el) el.textContent = 'Lat: ' + lat.toFixed(6) + ', Lng: ' + lng.toFixed(6) + ' · (marcado en mapa)';
+  saveDraft();
 }
 
 function addPhotos(fn, input) {
@@ -858,24 +922,137 @@ function submitSurveyNow() {
     })
     .catch(function(e) {
       survSubmitting = false;
-      var res = document.getElementById('surv-result');
-      if (res) res.innerHTML = '<div class="error-box" style="margin-top:12px">Error al enviar: ' + esc(e.message) + '</div>';
       if (btn) { btn.disabled = false; btn.innerHTML = '✅ Enviar encuesta'; }
-      notify('Error: ' + e.message, 'error');
+      // Sin conexión → guardar en cola offline
+      if (!navigator.onLine || e.message === 'offline' || /fetch|network|failed to fetch/i.test(e.message)) {
+        queueOfflineSubmission(payload);
+        updateOfflineIndicator();
+        clearDraft(); survSec = 0;
+        var res = document.getElementById('surv-result');
+        if (res) res.innerHTML =
+          '<div class="success-box" style="margin-top:14px">' +
+          '<strong>📦 Encuesta guardada sin conexión.</strong><br>' +
+          'Se enviará automáticamente cuando el dispositivo recupere internet.' +
+          '<div style="margin-top:12px"><button class="btn secondary" onclick="clearDraft();survSec=0;render()">+ Nueva encuesta</button></div>' +
+          '</div>';
+        notify('Guardado offline — se sincronizará luego', 'ok');
+      } else {
+        var res = document.getElementById('surv-result');
+        if (res) res.innerHTML = '<div class="error-box" style="margin-top:12px">Error al enviar: ' + esc(e.message) + '</div>';
+        notify('Error: ' + e.message, 'error');
+      }
     });
 }
 
 function loadSchema() {
+  // Si no hay conexión, usar cuestionario en caché
+  if (!navigator.onLine) {
+    var cached = localStorage.getItem('artesanos_schema_cache');
+    if (cached) {
+      try {
+        S.schema = JSON.parse(cached);
+        if (!S.startTs) S.startTs = new Date().toISOString();
+        if (S.session && S.session.displayName) S.values.encuestador = S.session.displayName;
+        loadDraft();
+        notify('Modo sin conexión — cuestionario cargado desde caché.', 'ok');
+        render();
+        return;
+      } catch(ex) {}
+    }
+    notify('Sin conexión y sin cuestionario en caché. Conecte a internet al menos una vez.', 'error');
+    return;
+  }
   call('getSurveySchema')
     .then(function(s) {
       S.schema = s;
+      try { localStorage.setItem('artesanos_schema_cache', JSON.stringify(s)); } catch(ex) {}
       if (!S.startTs) S.startTs = new Date().toISOString();
-      // auto-populate encuestador
       if (S.session && S.session.displayName) S.values.encuestador = S.session.displayName;
       loadDraft();
       render();
     })
-    .catch(function(e) { notify('Error al cargar cuestionario: ' + e.message, 'error'); });
+    .catch(function(e) {
+      var cached = localStorage.getItem('artesanos_schema_cache');
+      if (cached) {
+        try {
+          S.schema = JSON.parse(cached);
+          if (!S.startTs) S.startTs = new Date().toISOString();
+          if (S.session && S.session.displayName) S.values.encuestador = S.session.displayName;
+          loadDraft();
+          notify('Sin conexión con el servidor — cuestionario cargado desde caché.', 'ok');
+          render();
+          return;
+        } catch(ex) {}
+      }
+      notify('Error al cargar cuestionario: ' + e.message, 'error');
+    });
+}
+
+/* ═══════════════════════════════════════
+   COLA OFFLINE
+   ═══════════════════════════════════════ */
+function loadOfflineQueue() {
+  try { return JSON.parse(localStorage.getItem('artesanos_offline_q') || '[]'); } catch(e) { return []; }
+}
+function saveOfflineQueue(q) {
+  try { localStorage.setItem('artesanos_offline_q', JSON.stringify(q)); } catch(e) {}
+}
+function queueOfflineSubmission(payload) {
+  var q = loadOfflineQueue();
+  q.push({ payload: payload, ts: new Date().toISOString() });
+  saveOfflineQueue(q);
+}
+function updateOfflineIndicator() {
+  var n = loadOfflineQueue().length;
+  var el = document.getElementById('offline-pill');
+  if (!el) return;
+  el.style.display = n > 0 ? 'flex' : 'none';
+  el.querySelector('.offline-count').textContent = n;
+}
+function syncOfflineQueue() {
+  var q = loadOfflineQueue();
+  if (!q.length) { notify('No hay encuestas pendientes.', 'ok'); return; }
+  if (!navigator.onLine) { notify('Aún sin conexión. Intente más tarde.', 'error'); return; }
+  notify('Sincronizando ' + q.length + ' encuesta(s)…', 'ok');
+  saveOfflineQueue([]);
+  var failed = [], i = 0;
+  function next() {
+    if (i >= q.length) {
+      if (failed.length) { saveOfflineQueue(failed); notify(failed.length + ' encuesta(s) no sincronizadas.', 'error'); }
+      else notify('¡Sincronización completa!', 'ok');
+      updateOfflineIndicator();
+      return;
+    }
+    var item = q[i++];
+    call('submitSurvey', item.payload, S.sessionToken || null)
+      .then(function() { next(); })
+      .catch(function() { failed.push(item); next(); });
+  }
+  next();
+}
+
+/* ═══════════════════════════════════════
+   MAPA OFFLINE — descarga tiles del área
+   ═══════════════════════════════════════ */
+function downloadOfflineMap() {
+  if (!('serviceWorker' in navigator) || !navigator.serviceWorker.controller) {
+    notify('Service Worker no activo. Recargue la página y vuelva a intentar.', 'error');
+    return;
+  }
+  // Bounding box Isla Hermosa + Isla Tuyu + margen (Paso Barreto, Concepción, PY)
+  var bbox = { north: -21.80, south: -22.40, east: -57.50, west: -58.25 };
+  var ch = navigator.serviceWorker.controller;
+  var total = 0, done = 0;
+  navigator.serviceWorker.onmessage = function(e) {
+    if (e.data && e.data.type === 'TILE_PROGRESS') {
+      total = e.data.total; done = e.data.done;
+      var pct = total ? Math.round(done / total * 100) : 0;
+      notify('Descargando mapa… ' + done + '/' + total + ' tiles (' + pct + '%)', 'ok');
+      if (done >= total) notify('¡Mapa descargado! (' + e.data.cached + ' tiles guardados)', 'ok');
+    }
+  };
+  ch.postMessage({ type: 'CACHE_TILES', bbox: bbox, minZoom: 10, maxZoom: 16 });
+  notify('Iniciando descarga de mapa de Isla Hermosa / Isla Tuyu…', 'ok');
 }
 
 /* ═══════════════════════════════════════
@@ -1186,6 +1363,8 @@ function buildAdmin() {
       '<button class="btn" id="btnRebuild" onclick="doRebuild()">🔄 Reconstruir analítica</button>' +
       '<button class="btn secondary" onclick="doExportCsv()">⬇️ Exportar CSV de respuestas</button>' +
       '<button class="btn secondary" onclick="doOpenSheet()">📊 Abrir planilla Google Sheets</button>' +
+      '<button class="btn secondary" onclick="downloadOfflineMap()">🗺 Descargar mapa Isla Hermosa / Tuyu</button>' +
+      '<button class="btn secondary" onclick="syncOfflineQueue()">📤 Sincronizar encuestas offline</button>' +
     '</div>' +
     '<div id="admin-result" style="margin-top:12px"></div></div>';
 
@@ -1343,6 +1522,9 @@ function afterRender(tab) {
    INIT
    ═══════════════════════════════════════ */
 function shouldUseEmbeddedWebApp_() {
+  if (!navigator.onLine) return false; // offline → formulario standalone
+  var params = new URLSearchParams(window.location.search);
+  if (params.get('direct') === '1') return false; // ?direct=1 → standalone
   return /\.github\.io$/i.test(window.location.hostname);
 }
 
@@ -1356,25 +1538,46 @@ function renderEmbeddedWebApp_() {
 }
 
 function init() {
+  // Registrar Service Worker
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').catch(function() {});
+  }
+  window.addEventListener('online', function() {
+    notify('Conexión restaurada — sincronizando encuestas pendientes…', 'ok');
+    syncOfflineQueue();
+  });
+
   if (shouldUseEmbeddedWebApp_()) {
     renderEmbeddedWebApp_();
     return;
   }
   loadSession();
+
+  // Modo offline: usar caché de bootstrap
+  if (!navigator.onLine) {
+    var cachedBs = localStorage.getItem('artesanos_bootstrap_cache');
+    try { S.bootstrap = cachedBs ? JSON.parse(cachedBs) : { publicSurvey: true }; } catch(e) { S.bootstrap = { publicSurvey: true }; }
+    if (S.bootstrap && S.bootstrap.session) S.session = S.bootstrap.session;
+    notify('Sin conexión — modo offline activo.', 'ok');
+    render();
+    updateOfflineIndicator();
+    return;
+  }
+
   call('getBootstrap', S.sessionToken || '')
     .then(function(bs) {
       S.bootstrap = bs;
+      try { localStorage.setItem('artesanos_bootstrap_cache', JSON.stringify(bs)); } catch(e) {}
       if (bs.session) {
         S.session = bs.session;
-        // refresh stored session
         if (bs.session.token) S.sessionToken = bs.session.token;
         saveSession();
       } else if (!bs.publicSurvey && S.sessionToken) {
-        // token may be expired
         S.sessionToken = null; S.session = null;
         saveSession();
       }
       render();
+      updateOfflineIndicator();
     })
     .catch(function(e) {
       S.bootstrap = { publicSurvey: false };
@@ -1385,5 +1588,11 @@ function init() {
 
 document.addEventListener('DOMContentLoaded', init);
 </script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV/XN/WLs=" crossorigin=""></script>
+<!-- Indicador de encuestas pendientes offline -->
+<div id="offline-pill" style="display:none;position:fixed;bottom:18px;right:18px;z-index:9999;background:#0f3d33;color:#fff;padding:10px 16px;border-radius:40px;font-size:13px;font-weight:700;align-items:center;gap:10px;box-shadow:0 4px 18px rgba(0,0,0,.3);cursor:pointer" onclick="syncOfflineQueue()">
+  <span>📦</span>
+  <span><span class="offline-count">0</span> encuesta(s) pendiente(s) — toque para sincronizar</span>
+</div>
 </body>
 </html>
