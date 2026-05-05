@@ -1342,7 +1342,32 @@ function afterRender(tab) {
 /* ═══════════════════════════════════════
    INIT
    ═══════════════════════════════════════ */
+function shouldUseEmbeddedWebApp_() {
+  return /\.github\.io$/i.test(window.location.hostname);
+}
+
+function renderEmbeddedWebApp_() {
+  var app = document.getElementById('app');
+  var url = window.GAS_EXEC_URL;
+  if (!app) return;
+  app.innerHTML =
+    '<div class="app-shell">' +
+      '<aside class="sidebar">' +
+        '<div class="brand"><div class="brand-mark">A</div><div><h1>Artesanos Isla Hermosa</h1><p>Paracel S.A.</p></div></div>' +
+        '<div class="side-session"><p>Acceso operativo mediante Web App de Apps Script.</p>' +
+        '<a class="btn ghost" style="width:100%;justify-content:center" href="' + esc(url) + '" target="_blank" rel="noopener">Abrir en pestaña nueva</a></div>' +
+      '</aside>' +
+      '<main class="main" style="padding:0;max-width:none">' +
+        '<iframe title="Encuesta Artesanos Isla Hermosa" src="' + esc(url) + '" style="width:100%;height:100vh;border:0;background:#fff"></iframe>' +
+      '</main>' +
+    '</div>';
+}
+
 function init() {
+  if (shouldUseEmbeddedWebApp_()) {
+    renderEmbeddedWebApp_();
+    return;
+  }
   loadSession();
   call('getBootstrap', S.sessionToken || '')
     .then(function(bs) {

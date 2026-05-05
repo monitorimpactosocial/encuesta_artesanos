@@ -12,6 +12,17 @@ function hashSeedUsers_() {
   });
 }
 
+function ensureAuthReady_() {
+  ensureHeaders_(APP_CFG.SHEETS.USERS, USER_HEADERS_);
+  ensureHeaders_(APP_CFG.SHEETS.AUDIT, AUDIT_HEADERS_);
+  var users = getRowsAsObjects_(APP_CFG.SHEETS.USERS);
+  if (!users.length) {
+    seedUsers_();
+    return;
+  }
+  hashSeedUsers_();
+}
+
 function findUser_(username) {
   username = normalizeText_(username).toLowerCase();
   var users = getRowsAsObjects_(APP_CFG.SHEETS.USERS);
@@ -25,7 +36,7 @@ function login(username, password) {
   username = normalizeText_(username).toLowerCase();
   password = normalizeText_(password);
   if (!username || !password) throw new Error('Usuario y contraseña son obligatorios.');
-  hashSeedUsers_();
+  ensureAuthReady_();
   var user = findUser_(username);
   if (!user) throw new Error('Usuario no encontrado.');
   if (!asBool_(user.active)) throw new Error('Usuario inactivo.');
