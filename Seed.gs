@@ -29,7 +29,7 @@ function getQuestionnaireSeed_() {
   var s;
 
   s = ['0','control','Control operativo y georreferenciación'];
-  Q.push(q_(0,s[1],s[2],1,'gps_encuesta','GPS de la entrevista','geolocation',true,null,null,false,true,'Capturar al iniciar la entrevista.'));
+  Q.push(q_(0,s[1],s[2],1,'gps_encuesta','GPS de la entrevista','geolocation',false,null,null,false,true,'Capturar al iniciar la entrevista. Opcional si el dispositivo no tiene señal.'));
   Q.push(q_(0,s[1],s[2],2,'foto_general','Foto general del entorno o referencia autorizada','photo',false,null,null,false,true,'No fotografiar rostros sin consentimiento.'));
   Q.push(q_(0,s[1],s[2],3,'fecha_encuesta','Fecha de la entrevista','date',true,null,null,false,true,''));
   Q.push(q_(0,s[1],s[2],4,'encuestador','Encuestador/a','text',true,null,null,false,true,''));
@@ -94,9 +94,11 @@ function getQuestionnaireSeed_() {
 
   s = ['4','actividad_artesanal','Actividad artesanal y capacidades productivas'];
   Q.push(q_(4,s[1],s[2],1,'tipo_artesania_principal','Tipo principal de artesanía','select',true,{catalog:'tipo_artesania'},null,false,true,''));
-  Q.push(q_(4,s[1],s[2],2,'oficio_principal','Oficio o especialidad principal','text',false,null,null,false,true,'Ej.: tejido, tallado, cestería, cerámica, bordado, bijouterie.'));
+  Q.push(q_(4,s[1],s[2],2,'oficio_principal','Oficio o especialidad principal','select',false,{catalog:'oficio_artesanal'},null,false,true,'Si su especialidad no aparece en la lista, seleccione Otro y especifique abajo.'));
+  Q.push(q_(4,s[1],s[2],2.5,'oficio_principal_otro','Especificar oficio o especialidad','text',false,null,{field:'oficio_principal',equals:'Otro'},false,true,''));
   Q.push(q_(4,s[1],s[2],3,'productos_principales','Productos principales elaborados','textarea',true,null,null,false,true,''));
   Q.push(q_(4,s[1],s[2],4,'materia_prima_principal','Materia prima principal','select',true,{catalog:'materia_prima'},null,false,true,''));
+  Q.push(q_(4,s[1],s[2],4.5,'materia_prima_principal_otro','Descripción de otra materia prima principal','text',false,null,{field:'materia_prima_principal',equals:'Otro'},false,true,''));
   Q.push(q_(4,s[1],s[2],5,'materias_primas_otras','Otras materias primas utilizadas','checkbox_group',false,{catalog:'materia_prima'},null,false,true,''));
   Q.push(q_(4,s[1],s[2],6,'origen_materia_prima','Origen principal de materia prima','select',false,{catalog:'origen_materia_prima'},null,false,true,''));
   Q.push(q_(4,s[1],s[2],7,'dificultad_materia_prima','Dificultad principal para conseguir materia prima','select',false,{catalog:'dificultad_materia_prima'},null,false,true,''));
@@ -200,6 +202,7 @@ function getCatalogSeed_() {
   ['USF / Puesto de salud','Centro de salud','Hospital distrital/departamental','Clínica privada','Farmacia','No consulta','Otro'].forEach(function(x,i){ add('acceso_salud', normalizeKey_(x), x, i+1); });
   ['Distancia','Costo de traslado','Falta de medicamentos','Tiempo de espera','Horarios','No tiene dificultad','Otro'].forEach(function(x,i){ add('dificultad_salud', normalizeKey_(x), x, i+1); });
   ['Textil / tejido / bordado','Cestería / fibras vegetales','Madera / tallado','Cuero','Cerámica / arcilla','Bijouterie / accesorios','Reciclado / reutilizado','Alimentos artesanales','Artesanía mixta','Otra'].forEach(function(x,i){ add('tipo_artesania', normalizeKey_(x), x, i+1); });
+  ['Tejido','Bordado','Crochet / tejido a ganchillo','Cestería','Tallado en madera','Carpintería artesanal','Cerámica / alfarería','Cuero / marroquinería','Bijouterie / accesorios','Costura / confección','Arte en semillas y fibras naturales','Pintura artesanal','Trabajo en bambú / tacuarilla','Elaboración de alimentos artesanales','Artesanía mixta','Otro'].forEach(function(x,i){ add('oficio_artesanal', normalizeKey_(x), x, i+1); });
   ['Madera','Bambú / tacuarilla','Karanda’y / palma / fibras vegetales','Algodón / hilo / lana','Cuero','Arcilla','Semillas','Metal','Plástico reciclado','Papel / cartón','Tela reciclada','Otro'].forEach(function(x,i){ add('materia_prima', normalizeKey_(x), x, i+1); });
   ['Recolectada localmente','Comprada localmente','Comprada fuera de la comunidad','Proveída por intermediario','Donada','Reciclada/reutilizada','Otro'].forEach(function(x,i){ add('origen_materia_prima', normalizeKey_(x), x, i+1); });
   ['Precio alto','Escasez','Distancia para conseguir','Falta de transporte','Restricción ambiental o climática','Calidad irregular','No tiene dificultad','Otro'].forEach(function(x,i){ add('dificultad_materia_prima', normalizeKey_(x), x, i+1); });
