@@ -84,3 +84,23 @@
 - Subir cambios al repositorio y desplegar/actualizar Apps Script con `Auth.gs`.
 - Confirmar que la URL de Web App usada por `GAS_EXEC_URL` sigue vigente.
 - Probar login real despues del deploy con usuarios seed controlados y cambiar credenciales iniciales.
+
+## 2026-05-05 - Commit y push de correcciones; estado actual del repo
+
+### Acciones ejecutadas
+- Verificado que los archivos `.gs` y `Client.html` locales no tienen mojibake (codificacion UTF-8 correcta en los archivos actuales).
+- Commiteados y pusheados a `origin/main` los tres archivos pendientes: `Auth.gs`, `index.html`, `BITACORA.md`.
+  - Commit: `a8b9d5b fix: login robusto + GitHub Pages con iframe embebido`
+  - Push exitoso a `https://github.com/monitorimpactosocial/encuesta_artesanos.git`
+
+### Estado del repo tras esta sesion
+- Rama `main` limpia y sincronizada con `origin/main`.
+- Ultimo commit: `a8b9d5b`.
+
+### Pendientes criticos restantes (en orden de prioridad)
+1. **Deploy Apps Script** — Abrir el proyecto Apps Script vinculado al Sheet `1bNA0oHXbQEU0WkVqsa-iKefXHRdWwQNiE7MvEazPq40`, copiar el contenido actualizado de `Auth.gs` y publicar nueva version de Web App. Registrar el deployment ID y URL `/exec` aqui.
+2. **Verificar GAS_EXEC_URL** — Confirmar que `https://script.google.com/macros/s/AKfycbzXOgVnbp9-9b-_gWrUOc825jnHSXHugagq74tez8IOCI0_2qmPirR0dEQIBqDnO0IP/exec` sigue activa y corresponde al proyecto correcto.
+3. **Probar login** — Con `admin/123` o `diego/456` en la Web App nativa (no en GitHub Pages standalone).
+4. **Cambiar credenciales** — Inmediatamente despues de confirmar el login. Registrar solo el hecho, nunca las nuevas contrasenas.
+5. **Parity Client.html / index.html** — Evaluar si se requiere portar mejoras adicionales (visible_if avanzado, compresion de fotos, etc.) a `Client.html`.
+6. **QA end-to-end** — Formulario completo, GPS, foto, envio, dashboard, listado, CSV y reconstruccion analitica.
