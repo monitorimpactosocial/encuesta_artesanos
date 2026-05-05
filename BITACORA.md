@@ -138,3 +138,29 @@ Esto inicializa el Sheet (CONFIG, EDICIONES, USUARIOS, CUESTIONARIO, CATALOGOS, 
 1. Probar login en la Web App: `admin/123` y `diego/456`.
 2. Cambiar contrasenas iniciales.
 3. QA end-to-end del formulario.
+
+## 2026-05-05 - Correcciones de formulario + Deploy v4
+
+### Problemas reportados y corregidos
+1. **Oficio o especialidad principal** — cambiado de `text` a `select` con catalogo `oficio_artesanal` (16 especialidades + Otro). Se agrego campo `oficio_principal_otro` visible solo cuando se selecciona "Otro".
+2. **Materia prima principal → Otro** — agregado campo `materia_prima_principal_otro` visible solo cuando `materia_prima_principal = Otro`.
+3. **GPS no funciona** — el iframe de GitHub Pages no tenia el atributo `allow="geolocation"`. Corregido en `index.html`.
+4. **No se puede enviar sin GPS** — `gps_encuesta` tenia `required:true`. Cambiado a `required:false` con texto de ayuda explicativo.
+
+### Archivos modificados
+- `Seed.gs`: catalogo `oficio_artesanal` agregado, campos nuevos `oficio_principal_otro` y `materia_prima_principal_otro`, `gps_encuesta` no requerido.
+- `index.html`: iframe con `allow="geolocation"`.
+
+### Deploy
+- clasp push: 13 archivos, exitoso.
+- Version Apps Script: **v4** (creada `2026-05-05T14:22:31Z`).
+- Deployment actualizado: mismo ID y URL `/exec` de siempre.
+- Commit GitHub: `5e5f408 feat: oficio dropdown con Otro, materia prima otro, GPS iframe + deploy v4`.
+
+### Accion requerida por el usuario
+Despues de hacer login en la Web App, ir al panel Admin y ejecutar **"Sincronizar cuestionario"** (llama a `syncQuestionnaireMetadata()`). Esto re-siembra las hojas CUESTIONARIO y CATALOGOS con los nuevos campos y el catalogo `oficio_artesanal`.
+
+### Pendientes
+- Ejecutar `runSetup()` desde el editor Apps Script si aun no se hizo (autoriza OAuth).
+- Probar login, luego sincronizar cuestionario, luego QA del formulario completo.
+- Cambiar credenciales iniciales.
