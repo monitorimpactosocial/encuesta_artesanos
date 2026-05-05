@@ -311,16 +311,23 @@ function loadSession() {
   } catch (e) {}
 }
 
-/* ── visible_if: supports c.value AND c.equals AND array of conditions ── */
+/* ── visible_if: supports equals, values, contains (array membership) ── */
 function visible(q) {
   var vi = q.visible_if;
   if (!vi) return true;
   var conditions = Array.isArray(vi) ? vi : [vi];
   return conditions.every(function(c) {
-    var fieldVal = n(S.values[c.field]).toLowerCase().trim();
-    // support c.value, c.equals, c.values (array)
+    var raw = S.values[c.field];
+    var fieldVal = n(raw).toLowerCase().trim();
     if (c.values) {
       return c.values.map(function(v) { return n(v).toLowerCase().trim(); }).indexOf(fieldVal) >= 0;
+    }
+    if (c.contains !== undefined) {
+      var needle = n(c.contains).toLowerCase().trim();
+      try {
+        var arr = JSON.parse(raw || '[]');
+        return Array.isArray(arr) && arr.some(function(v) { return n(v).toLowerCase().trim() === needle; });
+      } catch(x) { return fieldVal.indexOf(needle) >= 0; }
     }
     var expected = n(c.value !== undefined ? c.value : c.equals).toLowerCase().trim();
     return fieldVal === expected;

@@ -136,6 +136,11 @@
   function isVisible_(q){
     const v=q.visible_if; if(!v||!v.field)return true;
     const cur=state.values[v.field];
+    if(v.contains!==undefined){
+      const needle=String(v.contains);
+      try{const arr=JSON.parse(cur||'[]');return Array.isArray(arr)&&arr.some(function(x){return String(x)===needle;});}
+      catch(x){return String(cur||'').indexOf(needle)>=0;}
+    }
     if(v.equals!==undefined) return String(cur||'')===String(v.equals);
     if(v.not_empty) return cur!==undefined && cur!==null && String(cur)!=='';
     return true;

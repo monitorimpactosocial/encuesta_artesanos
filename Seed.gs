@@ -91,6 +91,8 @@ function getQuestionnaireSeed_() {
   Q.push(q_(3,s[1],s[2],5,'seguro_medico','Cobertura de salud principal','select',false,{catalog:'seguro_medico'},null,false,true,''));
   Q.push(q_(3,s[1],s[2],6,'acceso_salud','Lugar habitual de atención en salud','select',false,{catalog:'acceso_salud'},null,false,true,''));
   Q.push(q_(3,s[1],s[2],7,'dificultad_atencion_salud','Principal dificultad para atención de salud','select',false,{catalog:'dificultad_salud'},null,false,true,''));
+  Q.push(q_(3,s[1],s[2],8,'recibe_subsidio','¿Recibe algún subsidio o transferencia social del Estado?','buttons',false,{catalog:'si_no'},null,false,true,''));
+  Q.push(q_(3,s[1],s[2],9,'tipo_subsidio','Programa(s) de subsidio o transferencia que recibe','checkbox_group',false,{catalog:'subsidio_estado'},{field:'recibe_subsidio',equals:'Sí'},false,true,'Puede marcar más de uno.'));
 
   s = ['4','actividad_artesanal','Actividad artesanal y capacidades productivas'];
   Q.push(q_(4,s[1],s[2],1,'tipo_artesania_principal','Tipo principal de artesanía','select',true,{catalog:'tipo_artesania'},null,false,true,''));
@@ -101,6 +103,7 @@ function getQuestionnaireSeed_() {
   Q.push(q_(4,s[1],s[2],4.5,'materia_prima_principal_otro','Descripción de otra materia prima principal','text',false,null,{field:'materia_prima_principal',equals:'Otro'},false,true,''));
   Q.push(q_(4,s[1],s[2],5,'materias_primas_otras','Otras materias primas utilizadas','checkbox_group',false,{catalog:'materia_prima'},null,false,true,''));
   Q.push(q_(4,s[1],s[2],6,'origen_materia_prima','Origen principal de materia prima','select',false,{catalog:'origen_materia_prima'},null,false,true,''));
+  Q.push(q_(4,s[1],s[2],6.5,'origen_materia_prima_lugar','¿En qué lugar específico consigue la materia prima?','text',false,null,null,false,true,'Indique localidad, mercado, proveedor, campo, monte, etc.'));
   Q.push(q_(4,s[1],s[2],7,'dificultad_materia_prima','Dificultad principal para conseguir materia prima','select',false,{catalog:'dificultad_materia_prima'},null,false,true,''));
   Q.push(q_(4,s[1],s[2],8,'anos_experiencia','Años de experiencia artesanal','number',false,null,null,false,true,''));
   Q.push(q_(4,s[1],s[2],9,'aprendio_oficio','¿Cómo aprendió el oficio?','select',false,{catalog:'aprendizaje'},null,false,true,''));
@@ -111,6 +114,7 @@ function getQuestionnaireSeed_() {
   Q.push(q_(4,s[1],s[2],14,'gps_taller','GPS del taller o lugar de producción','geolocation',false,null,null,false,true,''));
   Q.push(q_(4,s[1],s[2],15,'foto_taller','Foto del taller o área de trabajo autorizada','photo',false,null,null,false,true,''));
   Q.push(q_(4,s[1],s[2],16,'herramientas_disponibles','Herramientas/equipos disponibles','checkbox_group',false,{catalog:'herramientas'},null,false,true,''));
+  Q.push(q_(4,s[1],s[2],16.5,'herramientas_otro','Especificar otra herramienta o equipo que utiliza','text',false,null,{field:'herramientas_disponibles',contains:'Otro'},false,true,''));
   Q.push(q_(4,s[1],s[2],17,'necesita_herramientas','Herramientas o equipos que necesita','textarea',false,null,null,false,true,''));
   Q.push(q_(4,s[1],s[2],18,'capacitacion_recibida','¿Recibió capacitación artesanal o comercial en los últimos 2 años?','buttons',false,{catalog:'si_no'},null,false,true,''));
   Q.push(q_(4,s[1],s[2],19,'temas_capacitacion_recibida','Temas de capacitación recibida','checkbox_group',false,{catalog:'temas_capacitacion'},{field:'capacitacion_recibida',equals:'Sí'},false,true,''));
@@ -118,6 +122,9 @@ function getQuestionnaireSeed_() {
   Q.push(q_(4,s[1],s[2],21,'temas_capacitacion_necesaria','Temas prioritarios de capacitación','checkbox_group',false,{catalog:'temas_capacitacion'},null,false,true,''));
   Q.push(q_(4,s[1],s[2],22,'trabaja_solo_o_grupo','Forma habitual de trabajo','buttons',false,{catalog:'trabajo_grupo'},null,false,true,''));
   Q.push(q_(4,s[1],s[2],23,'personas_apoyan_produccion','Cantidad de personas que apoyan la producción','number',false,null,null,false,true,''));
+  Q.push(q_(4,s[1],s[2],24,'nombre_asociacion_artesanal','Nombre de la asociación de artesanos/as a la que pertenece','text',false,null,null,false,true,'Si no integra ninguna, dejar en blanco.'));
+  Q.push(q_(4,s[1],s[2],25,'registro_ipa','¿Cuenta con carnet de artesano/a del IPA (Instituto Paraguayo de Artesanía)?','buttons',false,{catalog:'si_no_parcial'},null,false,true,''));
+  Q.push(q_(4,s[1],s[2],25.5,'numero_registro_ipa','Número de registro / carnet IPA','text',false,null,{field:'registro_ipa',equals:'Sí'},false,true,''));
 
   s = ['5','produccion_ventas','Producción, ventas e ingresos'];
   Q.push(q_(5,s[1],s[2],1,'produccion_unidades_semana','Unidades producidas por semana aproximada','number',false,null,null,false,true,''));
@@ -128,15 +135,20 @@ function getQuestionnaireSeed_() {
   Q.push(q_(5,s[1],s[2],6,'ingreso_artesania_banda','Banda de ingreso mensual por artesanía','select',false,{catalog:'banda_ingreso'},null,false,true,''));
   Q.push(q_(5,s[1],s[2],7,'ingreso_total_hogar_banda','Banda de ingreso mensual total del hogar','select',false,{catalog:'banda_ingreso'},null,false,true,''));
   Q.push(q_(5,s[1],s[2],8,'principal_fuente_ingreso','Principal fuente de ingreso del hogar','select',false,{catalog:'fuente_ingreso'},null,false,true,''));
+  Q.push(q_(5,s[1],s[2],8.5,'principal_fuente_ingreso_otro','Especificar otra fuente de ingreso principal','text',false,null,{field:'principal_fuente_ingreso',equals:'Otra'},false,true,''));
   Q.push(q_(5,s[1],s[2],9,'principal_canal_venta','Canal principal de venta','select',false,{catalog:'canal_venta'},null,false,true,''));
+  Q.push(q_(5,s[1],s[2],9.5,'principal_canal_venta_otro','Especificar otro canal principal de venta','text',false,null,{field:'principal_canal_venta',equals:'Otro'},false,true,''));
   Q.push(q_(5,s[1],s[2],10,'otros_canales_venta','Otros canales de venta utilizados','checkbox_group',false,{catalog:'canal_venta'},null,false,true,''));
+  Q.push(q_(5,s[1],s[2],10.5,'otros_canales_venta_otro','Especificar otro canal de venta','text',false,null,{field:'otros_canales_venta',contains:'Otro'},false,true,''));
   Q.push(q_(5,s[1],s[2],11,'vende_por_redes','¿Vende o promociona por redes sociales/WhatsApp?','buttons',false,{catalog:'si_no'},null,false,true,''));
   Q.push(q_(5,s[1],s[2],12,'redes_utilizadas','Redes o medios digitales utilizados','checkbox_group',false,{catalog:'redes_digitales'},{field:'vende_por_redes',equals:'Sí'},false,true,''));
   Q.push(q_(5,s[1],s[2],13,'participa_ferias','¿Participa en ferias o exposiciones?','buttons',false,{catalog:'si_no'},null,false,true,''));
   Q.push(q_(5,s[1],s[2],14,'frecuencia_ferias','Frecuencia de participación en ferias','select',false,{catalog:'frecuencia_ferias'},{field:'participa_ferias',equals:'Sí'},false,true,''));
   Q.push(q_(5,s[1],s[2],15,'clientes_principales','Clientes principales','checkbox_group',false,{catalog:'clientes'},null,false,true,''));
+  Q.push(q_(5,s[1],s[2],15.5,'clientes_principales_otro','Especificar otros clientes','text',false,null,{field:'clientes_principales',contains:'Otro'},false,true,''));
   Q.push(q_(5,s[1],s[2],16,'meses_mayor_venta','Meses o temporadas de mayor venta','textarea',false,null,null,false,true,''));
   Q.push(q_(5,s[1],s[2],17,'barreras_comercializacion','Principales barreras para vender más','checkbox_group',false,{catalog:'barreras_comercializacion'},null,false,true,''));
+  Q.push(q_(5,s[1],s[2],17.5,'barreras_comercializacion_otro','Especificar otra barrera para vender','text',false,null,{field:'barreras_comercializacion',contains:'Otro'},false,true,''));
   Q.push(q_(5,s[1],s[2],18,'foto_producto_principal','Foto del producto principal autorizada','photo',false,null,null,false,true,''));
   Q.push(q_(5,s[1],s[2],19,'foto_producto_secundario','Foto de otro producto autorizado','photo',false,null,null,false,true,''));
 
@@ -149,6 +161,7 @@ function getQuestionnaireSeed_() {
   Q.push(q_(6,s[1],s[2],6,'emite_comprobante','¿Puede emitir comprobante/factura?','buttons',false,{catalog:'si_no_parcial'},null,false,true,''));
   Q.push(q_(6,s[1],s[2],7,'acceso_credito','¿Accedió a crédito o capital de trabajo en los últimos 12 meses?','buttons',false,{catalog:'si_no'},null,false,true,''));
   Q.push(q_(6,s[1],s[2],8,'fuente_credito','Fuente principal del crédito','select',false,{catalog:'fuente_credito'},{field:'acceso_credito',equals:'Sí'},false,true,''));
+  Q.push(q_(6,s[1],s[2],8.5,'dificultades_credito','Principales dificultades para acceder al crédito o capital de trabajo','checkbox_group',false,{catalog:'dificultades_credito'},null,false,true,'Puede marcar más de una.'));
   Q.push(q_(6,s[1],s[2],9,'necesita_financiamiento','¿Necesita financiamiento para mejorar o ampliar la producción?','buttons',false,{catalog:'si_no'},null,false,true,''));
   Q.push(q_(6,s[1],s[2],10,'monto_financiamiento_estimado_gs','Monto estimado requerido (Gs.)','number',false,null,{field:'necesita_financiamiento',equals:'Sí'},false,true,''));
   Q.push(q_(6,s[1],s[2],11,'uso_financiamiento','Uso prioritario del financiamiento','checkbox_group',false,{catalog:'uso_financiamiento'},{field:'necesita_financiamiento',equals:'Sí'},false,true,''));
@@ -159,14 +172,17 @@ function getQuestionnaireSeed_() {
   Q.push(q_(7,s[1],s[2],2,'usa_epp','¿Utiliza elementos de protección personal cuando corresponde?','buttons',false,{catalog:'si_no_parcial'},null,false,true,''));
   Q.push(q_(7,s[1],s[2],3,'accidente_ultimo_ano','¿Tuvo accidente o lesión relacionada al trabajo en el último año?','buttons',false,{catalog:'si_no'},null,false,true,''));
   Q.push(q_(7,s[1],s[2],4,'manejo_residuos','Destino principal de residuos de producción','select',false,{catalog:'manejo_residuos'},null,false,true,''));
+  Q.push(q_(7,s[1],s[2],4.5,'manejo_residuos_otro','Especificar otro destino de residuos','text',false,null,{field:'manejo_residuos',equals:'Otro'},false,true,''));
   Q.push(q_(7,s[1],s[2],5,'usa_material_reciclado','¿Usa materiales reciclados o reutilizados?','buttons',false,{catalog:'si_no'},null,false,true,''));
+  Q.push(q_(7,s[1],s[2],5.5,'material_reciclado_detalle','¿Qué materiales reciclados o reutilizados usa?','text',false,null,{field:'usa_material_reciclado',equals:'Sí'},false,true,'Especifique tipo y procedencia del material.'));
   Q.push(q_(7,s[1],s[2],6,'restriccion_ambiental','Restricción ambiental o climática que afecta la producción','textarea',false,null,null,false,true,''));
 
   s = ['8','paracel_expectativas','Vinculación, expectativas y cierre'];
   Q.push(q_(8,s[1],s[2],1,'conoce_paracel','¿Conoce a Paracel o sus programas sociales?','buttons',false,{catalog:'si_no_parcial'},null,false,true,''));
   Q.push(q_(8,s[1],s[2],2,'participacion_programa_previo','¿Participó antes en actividades, capacitaciones o programas vinculados a Paracel?','buttons',false,{catalog:'si_no'},null,false,true,''));
-  Q.push(q_(8,s[1],s[2],3,'interes_programa_paracel','¿Tiene interés en participar en programas de fortalecimiento artesanal?','buttons',true,{catalog:'si_no'},null,false,true,''));
-  Q.push(q_(8,s[1],s[2],4,'prioridad_apoyo','Apoyo que considera más prioritario','select',true,{catalog:'prioridad_apoyo'},null,false,true,''));
+  Q.push(q_(8,s[1],s[2],3,'interes_programa_paracel','Si en algún momento se ofrecieran programas de apoyo artesanal en la zona, ¿estaría dispuesto/a a participar?','buttons',false,{catalog:'si_no'},null,false,true,'Esta pregunta es solo informativa. No implica compromiso ni promesa de ningún programa concreto.'));
+  Q.push(q_(8,s[1],s[2],4,'prioridad_apoyo','Apoyo que considera más prioritario para su actividad artesanal','select',false,{catalog:'prioridad_apoyo'},null,false,true,''));
+  Q.push(q_(8,s[1],s[2],4.5,'prioridad_apoyo_otro','Especificar otro apoyo prioritario','text',false,null,{field:'prioridad_apoyo',equals:'Otro'},false,true,''));
   Q.push(q_(8,s[1],s[2],5,'otras_necesidades','Otras necesidades o sugerencias','textarea',false,null,null,false,true,''));
   Q.push(q_(8,s[1],s[2],6,'foto_otros','Foto adicional autorizada','photo',false,null,null,false,true,''));
   Q.push(q_(8,s[1],s[2],7,'obs','Observaciones finales del encuestador/a','textarea',false,null,null,false,true,''));
@@ -225,6 +241,8 @@ function getCatalogSeed_() {
   ['Cortes/pinchazos','Polvo/humo','Ruido','Posturas forzadas','Uso de químicos/pinturas','Quemaduras/calor','Carga pesada','Iluminación insuficiente','Ninguno relevante','Otro'].forEach(function(x,i){ add('riesgos_trabajo', normalizeKey_(x), x, i+1); });
   ['Se reutilizan','Se venden/entregan para reciclaje','Se queman','Se tiran con basura común','Se entierran','No genera residuos relevantes','Otro'].forEach(function(x,i){ add('manejo_residuos', normalizeKey_(x), x, i+1); });
   ['Herramientas/equipos','Materia prima','Capacitación técnica','Diseño, calidad y empaque','Comercialización y ferias','Redes sociales/ventas digitales','Formalización','Financiamiento','Organización/asociatividad','Otro'].forEach(function(x,i){ add('prioridad_apoyo', normalizeKey_(x), x, i+1); });
+  ['Tekoporã','Adultos Mayores','Abrazo','Sembrando Oportunidades','Pensión alimentaria adulto mayor','Otro programa / subsidio'].forEach(function(x,i){ add('subsidio_estado', normalizeKey_(x), x, i+1); });
+  ['Falta de garantías o avales','Altas tasas de interés','Trámites y requisitos complejos','Falta de información sobre opciones','Historial crediticio negativo','Falta de documentación (cédula, RUC)','Monto ofrecido insuficiente','Distancia a entidades financieras','No necesita crédito actualmente','Otro'].forEach(function(x,i){ add('dificultades_credito', normalizeKey_(x), x, i+1); });
   return C;
 }
 
