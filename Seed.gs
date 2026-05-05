@@ -264,9 +264,10 @@ function seedUsers_() {
   var existing = getRowsAsObjects_(APP_CFG.SHEETS.USERS);
   if (existing.length) return;
   var rows = [
-    ['admin','Administrador','admin','','123','SI','SI','Usuario inicial. Cambiar contraseña tras el primer acceso.'],
-    ['diego','Diego Meza','admin','','456','SI','SI','Usuario administrador inicial.'],
-    ['user','Visualizador','viewer','','123','SI','SI','Usuario de consulta.']
+    ['admin','Administrador','admin','','paracel2026','SI','NO','Usuario administrador principal.'],
+    ['user','Visualizador','viewer','','123','SI','NO','Usuario de consulta y llenado de cuestionario.'],
+    ['diego','Diego Meza','admin','','456','SI','NO','Usuario administrador.'],
+    ['lati','Lati','admin','','789','SI','NO','Usuario administrador.']
   ];
   replaceSheetData_(APP_CFG.SHEETS.USERS, USER_HEADERS_, rows);
   hashSeedUsers_();
