@@ -1,10 +1,12 @@
 /* Service Worker - Encuesta Artesanos Isla Hermosa */
-var APP_CACHE = 'artesanos-app-v2';
+var APP_CACHE = 'artesanos-app-v3';
 var TILE_CACHE = 'artesanos-tiles-v1';
 
 var APP_FILES = [
   './',
   './index.html',
+  './manifest.json',
+  './icon.svg',
   'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
   'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
   'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
