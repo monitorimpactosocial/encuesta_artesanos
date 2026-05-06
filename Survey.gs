@@ -132,6 +132,20 @@ function submitSurvey(payload, sessionToken) {
       row[p.field_name + '_url'] = p.file_url;
     });
 
+    var audioUrl = '';
+    var audioDurationSec = Number(payload.audio_duration_sec) || 0;
+    if (payload.audio_base64 && String(payload.audio_base64).length > 0) {
+      try {
+        var audioBytes = Utilities.base64Decode(payload.audio_base64);
+        var audioBlob = Utilities.newBlob(audioBytes, 'audio/webm',
+          nowIso_().replace(/[:.]/g, '-') + '_' + sourceUuid + '_audio.webm');
+        var audioFile = getPhotosFolder_().createFile(audioBlob);
+        audioUrl = audioFile.getUrl();
+      } catch(audioErr) { Logger.log('Audio upload error: ' + audioErr.message); }
+    }
+    row.audio_url = audioUrl;
+    row.audio_duration_sec = audioDurationSec;
+
     var cleaned = cleanAndDerive_(row);
     Object.keys(cleaned).forEach(function(k) { row[k] = cleaned[k]; });
     var flags = qualityFlags_(row);
@@ -148,7 +162,7 @@ function submitSurvey(payload, sessionToken) {
     upsertDirectory_(row);
     auditLog_(session ? session.username : 'public', session ? session.role : 'public', 'submit_survey', 'response', sourceUuid, { flags: flags.length, photos: uploadInfo.length });
     rebuildAnalytics();
-    return { ok: true, source_uuid: sourceUuid, calidad_estado: row.calidad_estado, flags: flags, photos: uploadInfo.length };
+    return { ok: true, source_uuid: sourceUuid, calidad_estado: row.calidad_estado, flags: flags, photos: uploadInfo.length, audio_url: audioUrl };
   } finally {
     lock.releaseLock();
   }

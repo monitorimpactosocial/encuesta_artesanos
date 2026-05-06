@@ -125,8 +125,10 @@ select.control{appearance:none;background-image:url("data:image/svg+xml,%3Csvg x
 .preview-img{width:80px;height:80px;object-fit:cover;border-radius:10px;border:1px solid var(--line)}
 
 /* ── roster ── */
-.roster-header,.roster-row{display:grid;grid-template-columns:1.3fr .9fr .7fr .55fr auto;gap:7px;align-items:center;margin-bottom:5px}
+.roster-header,.roster-row{display:grid;grid-template-columns:1.6fr .75fr .6fr auto;gap:7px;align-items:center;margin-bottom:3px}
 .roster-header{font-size:11px;color:var(--muted);font-weight:700;padding:0 4px;margin-bottom:3px}
+.roster-rel{display:flex;flex-wrap:wrap;gap:6px;padding:3px 0 9px 2px;border-bottom:1px solid var(--line);font-size:12.5px}
+.roster-rel label{display:flex;align-items:center;gap:4px;cursor:pointer;white-space:nowrap}
 
 /* ── KPI grid ── */
 .kpi-card{border:1px solid var(--line);border-radius:18px;background:#fff;padding:15px 16px;display:flex;flex-direction:column;justify-content:space-between;gap:6px}
@@ -235,6 +237,9 @@ var S = {
 };
 var mapInstances = {}; // fn -> L.Map
 var mapMarkers  = {}; // fn -> L.Marker
+var survTimerInterval = null;
+var audioMediaRecorder = null;
+var audioChunks = [];
 
 /* ─── API CALL ─── */
 function call(fn) {
@@ -293,7 +298,12 @@ function loadDraft() {
   } catch (e) {}
 }
 function clearDraft() {
-  try { localStorage.removeItem('artesanos_draft'); } catch (e) {}
+  Object.keys(mapInstances).forEach(function(k) { try { mapInstances[k].remove(); } catch(e) {} });
+  mapInstances = {}; mapMarkers = {};
+  if (audioMediaRecorder && audioMediaRecorder.state !== 'inactive') { try { audioMediaRecorder.stop(); } catch(e) {} }
+  audioMediaRecorder = null; audioChunks = []; S.audioBlob = null; S.audioDuration = 0;
+  if (survTimerInterval) { clearInterval(survTimerInterval); survTimerInterval = null; }
+  try { localStorage.removeItem('artesanos_draft'); } catch(e) {}
   S.values = {}; S.gps = {}; S.photos = {}; S.startTs = null;
 }
 
@@ -576,7 +586,7 @@ function buildSurvey() {
   var html = '<div class="topbar"><div class="page-title">' +
     '<h2>📋 Nueva Encuesta</h2>' +
     '<p>Sección ' + (survSec + 1) + ' de ' + sections.length + ': <strong>' + esc(sec.label) + '</strong></p>' +
-    '</div></div>';
+    '</div><div id="surv-timer" style="font-size:12.5px;color:var(--muted);font-weight:600;white-space:nowrap;padding-right:4px"></div></div>';
 
   html += '<div class="card">';
   html += '<div class="form-progress"><div style="width:' + pctVal + '%"></div></div>';
@@ -592,6 +602,7 @@ function buildSurvey() {
   if (survSec > 0) html += '<button class="btn secondary" onclick="gotoSurvSec(' + (survSec - 1) + ')">← Anterior</button>';
   html += '</div>';
   html += '<div style="display:flex;gap:8px;flex-wrap:wrap">';
+  html += '<div id="audio-rec-bar" style="padding:6px 0 2px;font-size:13px"></div>';
   html += '<button class="btn ghost" onclick="saveDraft();notify(\'Borrador guardado\',\'ok\')">💾 Borrador</button>';
   html += '<button class="btn ghost" onclick="if(confirm(\'¿Limpiar formulario?\'))clearDraft(),survSec=0,render()">🗑️ Limpiar</button>';
   if (survSec < sections.length - 1) {
@@ -609,16 +620,44 @@ function buildSectionQuestions(sec) {
   var qs = (sec.questions || []).filter(function(q) { return visible(q); });
   if (!qs.length) return '<p class="muted" style="padding:22px;text-align:center">No hay preguntas visibles en esta sección con los valores actuales.</p>';
 
+  // Mapa de campos _otro ya definidos explícitamente en el schema
+  var explicitOtroMap = {};
+  (S.schema.sections || []).forEach(function(s) {
+    (s.questions || []).forEach(function(q2) {
+      if (q2.field_name.slice(-5) === '_otro') explicitOtroMap[q2.field_name] = true;
+    });
+  });
+
   var html = '<div class="section-title"><h3>' + esc(sec.label) + '</h3></div>';
   html += '<div class="q-grid">';
   qs.forEach(function(q) {
     var t = q.input_type;
+    var fn = q.field_name;
     var isFull = ['textarea','roster','photo','gps','geolocation','checkbox','checkbox_group','buttons','radio'].indexOf(t) >= 0;
     html += '<div class="q' + (isFull ? ' full' : '') + '">';
     html += '<label>' + esc(q.label) + (q.required ? '<span class="req">*</span>' : '') + '</label>';
     html += buildInput(q);
     if (q.help_text) html += '<p class="help">' + esc(q.help_text) + '</p>';
     html += '</div>';
+
+    // Auto-append "Especificar Otro/a" si aplica
+    if ((t === 'select' || t === 'buttons' || t === 'checkbox_group') && !explicitOtroMap[fn + '_otro']) {
+      var opts = q.options || [];
+      var hasOtroOpt = opts.some(function(o) { return /^otr[oa]$/i.test((o.value || o.label || '').trim()); });
+      if (hasOtroOpt) {
+        var isOtroSel = false;
+        if (t === 'checkbox_group') {
+          try { var arr = JSON.parse(S.values[fn] || '[]'); isOtroSel = Array.isArray(arr) && arr.some(function(v){ return /^otr[oa]$/i.test(v.trim()); }); } catch(e) {}
+        } else { isOtroSel = /^otr[oa]$/i.test((S.values[fn] || '').trim()); }
+        if (isOtroSel) {
+          var otroFn = fn + '_otro';
+          html += '<div class="q full" style="margin-top:-4px">';
+          html += '<label style="font-size:12.5px;opacity:.75">↳ Especificar &quot;Otro/a&quot;</label>';
+          html += '<input class="control" type="text" value="' + esc(n(S.values[otroFn])) + '" placeholder="¿A qué se refiere con Otro/a?" oninput="setVal(\'' + esc(otroFn) + '\',this.value)">';
+          html += '</div>';
+        }
+      }
+    }
   });
   html += '</div>';
   return html;
@@ -706,21 +745,30 @@ function buildInput(q) {
 function buildRoster(fn) {
   var rows = [];
   try { rows = JSON.parse(S.values[fn] || '[]'); if (!Array.isArray(rows)) rows = []; } catch (e) { rows = []; }
+  var relOpts = ['Cónyuge/pareja','Hijo/a','Padre/madre','Hermano/a','Abuelo/a nieto/a','Otro familiar','Sin parentesco'];
   var html = '<div id="roster-' + esc(fn) + '">';
-  html += '<div class="roster-header"><span>Nombre</span><span>Relación</span><span class="r-sexo">Sexo</span><span class="r-edad">Edad</span><span></span></div>';
+  html += '<div class="roster-header"><span>Nombre</span><span class="r-sexo">Sexo</span><span class="r-edad">Edad</span><span></span></div>';
   rows.forEach(function(r, i) {
+    var relArr = [];
+    try { relArr = Array.isArray(r.relacion) ? r.relacion : (r.relacion ? [r.relacion] : []); } catch(e) {}
     html += '<div class="roster-row">' +
       '<input class="control" style="font-size:12.5px" placeholder="Nombre" value="' + esc(r.nombre || '') + '" onchange="rosterSet(\'' + fn + '\',' + i + ',\'nombre\',this.value)">' +
-      '<input class="control" style="font-size:12.5px" placeholder="Relación" value="' + esc(r.relacion || '') + '" onchange="rosterSet(\'' + fn + '\',' + i + ',\'relacion\',this.value)">' +
       '<select class="control r-sexo" style="font-size:12.5px" onchange="rosterSet(\'' + fn + '\',' + i + ',\'sexo\',this.value)">' +
         '<option value="">—</option>' + ['Femenino','Masculino','Otro'].map(function(sx) {
-          return '<option' + (r.sexo === sx ? ' selected' : '') + '>' + sx + '</option>';
+          return '<option' + (r.sexo === sx ? ' selected' : '') + '>' + esc(sx) + '</option>';
         }).join('') +
       '</select>' +
-      '<input class="control r-edad" type="number" placeholder="Edad" value="' + esc(r.edad || '') + '" onchange="rosterSet(\'' + fn + '\',' + i + ',\'edad\',this.value)">' +
+      '<input class="control r-edad" type="number" min="0" max="120" placeholder="Edad" value="' + esc(r.edad || '') + '" onchange="rosterSet(\'' + fn + '\',' + i + ',\'edad\',this.value)">' +
       '<button type="button" class="btn danger" style="padding:7px 9px;font-size:12px" onclick="rosterDel(\'' + fn + '\',' + i + ')">✕</button></div>';
+    html += '<div class="roster-rel">' +
+      '<span style="color:var(--muted);font-size:11px;width:100%;padding-bottom:2px">Parentesco:</span>' +
+      relOpts.map(function(opt) {
+        var chk = relArr.indexOf(opt) >= 0 ? ' checked' : '';
+        return '<label><input type="checkbox"' + chk + ' onchange="rosterToggleRel(\'' + fn + '\',' + i + ',\'' + opt.replace(/'/g,"\\'") + '\',this.checked)"> ' + esc(opt) + '</label>';
+      }).join('') +
+    '</div>';
   });
-  html += '</div><button type="button" class="btn ghost" style="margin-top:8px;font-size:12.5px" onclick="rosterAdd(\'' + fn + '\')">+ Agregar miembro</button>';
+  html += '</div><button type="button" class="btn ghost" style="margin-top:8px;font-size:12.5px" onclick="rosterAdd(\'' + fn + '\')">+ Agregar integrante</button>';
   return html;
 }
 
@@ -824,6 +872,87 @@ function updateGpsFromMap(fn, lat, lng) {
   saveDraft();
 }
 
+/* ═══ TIMER ═══ */
+function startSurvTimer() {
+  if (survTimerInterval) clearInterval(survTimerInterval);
+  if (!S.startTs) S.startTs = new Date().toISOString();
+  survTimerInterval = setInterval(function() {
+    var el = document.getElementById('surv-timer');
+    if (!el || !S.startTs) return;
+    var sec = Math.floor((Date.now() - new Date(S.startTs).getTime()) / 1000);
+    var m = Math.floor(sec / 60), s = sec % 60;
+    el.textContent = '⏱ ' + (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+  }, 1000);
+}
+function fmtDuration(startIso, endIso) {
+  var sec = Math.max(0, Math.floor((new Date(endIso) - new Date(startIso)) / 1000));
+  var m = Math.floor(sec / 60), s = sec % 60;
+  return (m > 0 ? m + ' min ' : '') + s + ' seg';
+}
+
+/* ═══ AUDIO ═══ */
+function startAudio() {
+  if (audioMediaRecorder && audioMediaRecorder.state === 'recording') return;
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    notify('Grabación de audio no disponible en este navegador.', 'error'); return;
+  }
+  navigator.mediaDevices.getUserMedia({ audio: true }).then(function(stream) {
+    var opts = {};
+    if (typeof MediaRecorder !== 'undefined') {
+      ['audio/webm;codecs=opus','audio/webm','audio/ogg'].forEach(function(mt) {
+        if (!opts.mimeType && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(mt)) opts.mimeType = mt;
+      });
+    }
+    opts.audioBitsPerSecond = 12000;
+    audioChunks = [];
+    audioMediaRecorder = new MediaRecorder(stream, opts);
+    audioMediaRecorder.addEventListener('dataavailable', function(e) { if (e.data && e.data.size > 0) audioChunks.push(e.data); });
+    audioMediaRecorder.addEventListener('stop', function() {
+      S.audioBlob = new Blob(audioChunks, { type: audioMediaRecorder.mimeType || 'audio/webm' });
+      stream.getTracks().forEach(function(t) { t.stop(); });
+      updateAudioUI();
+      notify('Audio guardado (' + fmtSize(S.audioBlob.size) + ')', 'ok');
+    });
+    audioMediaRecorder._startTime = Date.now();
+    audioMediaRecorder.start(2000);
+    updateAudioUI();
+    notify('Grabando audio…', 'ok');
+  }).catch(function(e) { notify('No se pudo acceder al micrófono: ' + e.message, 'error'); });
+}
+function stopAudio() {
+  if (audioMediaRecorder && audioMediaRecorder.state !== 'inactive') {
+    S.audioDuration = Math.round((Date.now() - (audioMediaRecorder._startTime || Date.now())) / 1000);
+    audioMediaRecorder.stop();
+  }
+  updateAudioUI();
+}
+function fmtSize(bytes) {
+  return bytes < 1048576 ? Math.round(bytes/1024) + ' KB' : (bytes/1048576).toFixed(1) + ' MB';
+}
+function updateAudioUI() {
+  var el = document.getElementById('audio-rec-bar');
+  if (!el) return;
+  var isRec = audioMediaRecorder && audioMediaRecorder.state === 'recording';
+  var hasAudio = !!S.audioBlob;
+  if (isRec) {
+    el.innerHTML = '<span style="color:#e53935;font-weight:700;animation:pulse 1s infinite">⏺ REC</span> &nbsp;' +
+      '<button class="btn ghost" style="font-size:12px;padding:4px 10px" onclick="stopAudio()">■ Detener</button>';
+    if (!el._tick) el._tick = setInterval(function() {
+      if (!audioMediaRecorder || audioMediaRecorder.state !== 'recording') { clearInterval(el._tick); el._tick = null; return; }
+      var sec = Math.round((Date.now() - audioMediaRecorder._startTime) / 1000);
+      var m = Math.floor(sec/60), s = sec%60;
+      var span = el.querySelector('span');
+      if (span) span.textContent = '⏺ REC ' + (m<10?'0':'') + m + ':' + (s<10?'0':'') + s;
+    }, 1000);
+  } else if (hasAudio) {
+    var dur = S.audioDuration || 0, m = Math.floor(dur/60), s = dur%60;
+    el.innerHTML = '🎙 Audio: ' + (m<10?'0':'') + m + ':' + (s<10?'0':'') + s + ' · ' + fmtSize(S.audioBlob.size) +
+      ' &nbsp;<button class="btn ghost" style="font-size:12px;padding:4px 10px" onclick="startAudio()">🔄 Nuevo</button>';
+  } else {
+    el.innerHTML = '<button class="btn ghost" style="font-size:12px;padding:5px 12px" onclick="startAudio()">🎙 Grabar audio de entrevista</button>';
+  }
+}
+
 function addPhotos(fn, input) {
   if (!input.files || !input.files.length) return;
   if (!S.photos[fn]) S.photos[fn] = [];
@@ -862,6 +991,17 @@ function rosterSet(fn, idx, key, val) {
   S.values[fn] = JSON.stringify(rows);
   saveDraft();
 }
+function rosterToggleRel(fn, idx, val, checked) {
+  var rows = []; try { rows = JSON.parse(S.values[fn] || '[]'); } catch(e) {}
+  if (!rows[idx]) rows[idx] = {};
+  var rels = [];
+  try { rels = Array.isArray(rows[idx].relacion) ? rows[idx].relacion.slice() : (rows[idx].relacion ? [rows[idx].relacion] : []); } catch(e) {}
+  if (checked && rels.indexOf(val) < 0) rels.push(val);
+  else if (!checked) rels = rels.filter(function(r) { return r !== val; });
+  rows[idx].relacion = rels;
+  S.values[fn] = JSON.stringify(rows);
+  saveDraft();
+}
 
 function submitSurveyNow() {
   if (survSubmitting) return;
@@ -885,15 +1025,18 @@ function submitSurveyNow() {
     return;
   }
 
-  // auto-populate encuestador from session
   if (S.session && S.session.displayName && !S.values.encuestador) {
     S.values.encuestador = S.session.displayName;
   }
+
+  // Stop active recording before submitting
+  if (audioMediaRecorder && audioMediaRecorder.state === 'recording') stopAudio();
 
   survSubmitting = true;
   var btn = document.getElementById('btnSubmit');
   if (btn) { btn.disabled = true; btn.innerHTML = '<span class="loader"></span> Enviando…'; }
 
+  var endTs = new Date().toISOString();
   var photoArr = [];
   Object.keys(S.photos).forEach(function(fn) {
     (S.photos[fn] || []).forEach(function(p) { photoArr.push(p); });
@@ -902,56 +1045,76 @@ function submitSurveyNow() {
   var payload = {
     source_uuid: uuid(),
     source_version: 'artesanos-web-v2.0.0',
-    start_ts: S.startTs || new Date().toISOString(),
-    end_ts: new Date().toISOString(),
+    start_ts: S.startTs || endTs,
+    end_ts: endTs,
     values: S.values,
     gps: S.gps,
-    photos: photoArr
+    photos: photoArr,
+    audio_duration_sec: S.audioDuration || 0
   };
 
-  call('submitSurvey', payload, S.sessionToken || null)
-    .then(function(r) {
-      survSubmitting = false;
-      clearDraft(); survSec = 0;
-      var res = document.getElementById('surv-result');
-      if (res) res.innerHTML =
-        '<div class="success-box" style="margin-top:14px">' +
-        '<strong>✅ Encuesta enviada correctamente.</strong><br>' +
-        '<span class="small" style="opacity:.8">UUID: ' + esc(r.source_uuid) + '</span><br>' +
-        'Calidad: <span class="pill ' + (r.calidad_estado === 'OK' ? 'ok' : 'warn') + '" style="margin:4px 0">' + esc(r.calidad_estado || '—') + '</span>' +
-        (r.flags && r.flags.length ? ' · ' + r.flags.length + ' observación(es)' : '') +
-        (r.photos ? ' · ' + r.photos + ' foto(s)' : '') +
-        '<div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">' +
-        '<button class="btn" onclick="S.dashData=null;nav(\'dashboard\')">📊 Ver tablero</button>' +
-        '<button class="btn secondary" onclick="clearDraft();survSec=0;render()">+ Nueva encuesta</button>' +
-        '</div></div>';
-      if (btn) { btn.disabled = false; btn.innerHTML = '✅ Enviar encuesta'; }
-    })
-    .catch(function(e) {
-      survSubmitting = false;
-      if (btn) { btn.disabled = false; btn.innerHTML = '✅ Enviar encuesta'; }
-      // Sin conexión → guardar en cola offline
-      if (!navigator.onLine || e.message === 'offline' || /fetch|network|failed to fetch/i.test(e.message)) {
-        queueOfflineSubmission(payload);
-        updateOfflineIndicator();
+  function doSubmit(audioB64) {
+    if (audioB64) payload.audio_base64 = audioB64;
+    var durLabel = fmtDuration(payload.start_ts, payload.end_ts);
+    call('submitSurvey', payload, S.sessionToken || null)
+      .then(function(r) {
+        survSubmitting = false;
         clearDraft(); survSec = 0;
         var res = document.getElementById('surv-result');
         if (res) res.innerHTML =
           '<div class="success-box" style="margin-top:14px">' +
-          '<strong>📦 Encuesta guardada sin conexión.</strong><br>' +
-          'Se enviará automáticamente cuando el dispositivo recupere internet.' +
-          '<div style="margin-top:12px"><button class="btn secondary" onclick="clearDraft();survSec=0;render()">+ Nueva encuesta</button></div>' +
-          '</div>';
-        notify('Guardado offline — se sincronizará luego', 'ok');
-      } else {
-        var res = document.getElementById('surv-result');
-        if (res) res.innerHTML = '<div class="error-box" style="margin-top:12px">Error al enviar: ' + esc(e.message) + '</div>';
-        notify('Error: ' + e.message, 'error');
-      }
-    });
+          '<strong>✅ Encuesta enviada correctamente.</strong><br>' +
+          '<span class="small" style="opacity:.8">UUID: ' + esc(r.source_uuid) + '</span><br>' +
+          'Duración: <strong>' + esc(durLabel) + '</strong> · ' +
+          'Calidad: <span class="pill ' + (r.calidad_estado === 'OK' ? 'ok' : 'warn') + '" style="margin:4px 0">' + esc(r.calidad_estado || '—') + '</span>' +
+          (r.flags && r.flags.length ? ' · ' + r.flags.length + ' observación(es)' : '') +
+          (r.photos ? ' · ' + r.photos + ' foto(s)' : '') +
+          (r.audio_url ? ' · 🎙 audio' : '') +
+          '<div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">' +
+          '<button class="btn" onclick="S.dashData=null;nav(\'dashboard\')">📊 Ver tablero</button>' +
+          '<button class="btn secondary" onclick="clearDraft();survSec=0;render()">+ Nueva encuesta</button>' +
+          '</div></div>';
+        if (btn) { btn.disabled = false; btn.innerHTML = '✅ Enviar encuesta'; }
+      })
+      .catch(function(e) {
+        survSubmitting = false;
+        if (btn) { btn.disabled = false; btn.innerHTML = '✅ Enviar encuesta'; }
+        if (!navigator.onLine || e.message === 'offline' || /fetch|network|failed to fetch/i.test(e.message)) {
+          queueOfflineSubmission(payload);
+          updateOfflineIndicator();
+          clearDraft(); survSec = 0;
+          var res = document.getElementById('surv-result');
+          if (res) res.innerHTML =
+            '<div class="success-box" style="margin-top:14px">' +
+            '<strong>📦 Encuesta guardada sin conexión.</strong><br>' +
+            'Se enviará automáticamente cuando el dispositivo recupere internet.' +
+            '<div style="margin-top:12px"><button class="btn secondary" onclick="clearDraft();survSec=0;render()">+ Nueva encuesta</button></div>' +
+            '</div>';
+          notify('Guardado offline — se sincronizará luego', 'ok');
+        } else {
+          var res = document.getElementById('surv-result');
+          if (res) res.innerHTML = '<div class="error-box" style="margin-top:12px">Error al enviar: ' + esc(e.message) + '</div>';
+          notify('Error: ' + e.message, 'error');
+        }
+      });
+  }
+
+  // If there's an audio blob ≤ 5MB, encode it async before submitting
+  if (S.audioBlob && S.audioBlob.size <= 5242880) {
+    var fr = new FileReader();
+    fr.onload = function() {
+      var b64 = fr.result.split(',')[1];
+      doSubmit(b64);
+    };
+    fr.onerror = function() { doSubmit(null); };
+    fr.readAsDataURL(S.audioBlob);
+  } else {
+    doSubmit(null);
+  }
 }
 
 function loadSchema() {
+  startSurvTimer();
   // Si no hay conexión, usar cuestionario en caché
   if (!navigator.onLine) {
     var cached = localStorage.getItem('artesanos_schema_cache');
@@ -972,6 +1135,7 @@ function loadSchema() {
   call('getSurveySchema')
     .then(function(s) {
       S.schema = s;
+      startSurvTimer();
       try { localStorage.setItem('artesanos_schema_cache', JSON.stringify(s)); } catch(ex) {}
       if (!S.startTs) S.startTs = new Date().toISOString();
       if (S.session && S.session.displayName) S.values.encuestador = S.session.displayName;

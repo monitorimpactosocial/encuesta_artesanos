@@ -59,7 +59,8 @@ function getResponseHeaders_() {
     'source_uuid','source_status','source_version','source_index','edicion','fecha_encuesta',
     'start_ts','end_ts','submission_ts','duracion_min','modo_captura','encuestador_usuario',
     'gps_encuesta_lat','gps_encuesta_lng','gps_encuesta_accuracy','gps_encuesta_ts',
-    'gps_taller_lat','gps_taller_lng','gps_taller_accuracy','gps_taller_ts'
+    'gps_taller_lat','gps_taller_lng','gps_taller_accuracy','gps_taller_ts',
+    'audio_url','audio_duration_sec'
   ];
   APP_CFG.PHOTO_FIELDS.forEach(function(f) {
     meta.push(f + '_id');
