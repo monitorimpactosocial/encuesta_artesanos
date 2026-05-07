@@ -260,7 +260,7 @@ function call(fn) {
         ctrl.abort();
         var e = new Error('Tiempo de espera agotado. Intente de nuevo.');
         e.code = 'TIMEOUT'; reject(e);
-      }, 30000) : null;
+      }, 60000) : null;
 
       fetch(url, {
         method: 'POST', redirect: 'follow',
@@ -295,7 +295,7 @@ function call(fn) {
     return new Promise(function(res) { setTimeout(res, DELAYS[i] || 0); })
       .then(attempt)
       .catch(function(e) {
-        if ((e.code === 'NETWORK' || e.code === 'TIMEOUT') && i < DELAYS.length - 1) return run(i + 1);
+        if (e.code === 'NETWORK' && i < DELAYS.length - 1) return run(i + 1);
         if (e.code === 'AUTH' && S.sessionToken) window.dispatchEvent(new CustomEvent('paracel:session-expired'));
         throw e;
       });
