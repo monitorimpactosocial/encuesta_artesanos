@@ -1,5 +1,5 @@
 /* Service Worker - Encuesta Artesanos Isla Hermosa */
-var APP_CACHE = 'artesanos-app-v3';
+var APP_CACHE = 'artesanos-app-v4';
 var TILE_CACHE = 'artesanos-tiles-v1';
 
 var APP_FILES = [
