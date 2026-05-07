@@ -40,9 +40,20 @@ function login(username, password) {
   var user = findUser_(username);
   if (!user) throw new Error('Usuario no encontrado.');
   if (!asBool_(user.active)) throw new Error('Usuario inactivo.');
+
+  // Rate limiting: máximo 5 intentos fallidos → bloqueo 15 minutos
+  var sc = CacheService.getScriptCache();
+  var failKey = 'lf_' + username;
+  var fails = Number(sc.get(failKey) || '0');
+  if (fails >= 5) throw new Error('Cuenta bloqueada temporalmente por múltiples intentos fallidos. Intente en 15 minutos.');
+
   var expected = normalizeText_(user.password_hash);
   var actual = sha256Hex_(username + '|' + password);
-  if (expected !== actual) throw new Error('Contraseña incorrecta.');
+  if (expected !== actual) {
+    sc.put(failKey, String(fails + 1), 900);
+    throw new Error('Contraseña incorrecta.' + (fails >= 3 ? ' (' + (5 - fails - 1) + ' intentos restantes)' : ''));
+  }
+  sc.remove(failKey);
   var token = uuid_();
   var expires = new Date(new Date().getTime() + APP_CFG.SESSION_HOURS * 60 * 60 * 1000).toISOString();
   CacheService.getScriptCache().put('SESSION_' + token, JSON.stringify({

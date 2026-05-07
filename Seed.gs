@@ -250,6 +250,7 @@ function seedQuestionnaire() {
   var rows = getQuestionnaireSeed_();
   var data = rows.map(function(r) { return QUESTIONNAIRE_HEADERS_.map(function(h) { return r[h] || ''; }); });
   replaceSheetData_(APP_CFG.SHEETS.QUESTIONNAIRE, QUESTIONNAIRE_HEADERS_, data);
+  try { CacheService.getScriptCache().remove('artesanos_schema_v1'); } catch(e) {}
   return { ok: true, rows: rows.length };
 }
 
@@ -257,6 +258,7 @@ function seedCatalogs() {
   var rows = getCatalogSeed_();
   var data = rows.map(function(r) { return CATALOG_HEADERS_.map(function(h) { return r[h] || ''; }); });
   replaceSheetData_(APP_CFG.SHEETS.CATALOGS, CATALOG_HEADERS_, data);
+  try { CacheService.getScriptCache().remove('artesanos_schema_v1'); } catch(e) {}
   return { ok: true, rows: rows.length };
 }
 

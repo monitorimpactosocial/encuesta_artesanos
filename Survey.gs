@@ -14,6 +14,11 @@ function getCatalogMap_() {
 }
 
 function getSurveySchema() {
+  var SCHEMA_CACHE_KEY = 'artesanos_schema_v1';
+  var sc = CacheService.getScriptCache();
+  var cachedJson = sc.get(SCHEMA_CACHE_KEY);
+  if (cachedJson) { try { return JSON.parse(cachedJson); } catch(e) {} }
+
   var qRows = getRowsAsObjects_(APP_CFG.SHEETS.QUESTIONNAIRE);
   if (!qRows.length) {
     seedCatalogs();
@@ -55,7 +60,7 @@ function getSurveySchema() {
       help_text: normalizeText_(q.help_text)
     });
   });
-  return {
+  var result = {
     app: {
       appName: APP_CFG.APP_NAME,
       orgName: APP_CFG.ORG_NAME,
@@ -67,6 +72,11 @@ function getSurveySchema() {
     sections: sections,
     catalogs: catalogs
   };
+  try {
+    var json = JSON.stringify(result);
+    if (json.length < 90000) sc.put(SCHEMA_CACHE_KEY, json, 60);
+  } catch(e) {}
+  return result;
 }
 
 function submitSurvey(payload, sessionToken) {

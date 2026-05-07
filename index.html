@@ -237,8 +237,9 @@ var S = {
   responses: null,
   detailRow: null,
   users: null,
-  _charts: {},    // track Chart.js instances to destroy on re-render
-  _notifTimer: null
+  _charts: {},
+  _notifTimer: null,
+  _navCache: {}
 };
 var mapInstances = {}; // fn -> L.Map
 var mapMarkers  = {}; // fn -> L.Marker
@@ -246,22 +247,70 @@ var survTimerInterval = null;
 var audioMediaRecorder = null;
 var audioChunks = [];
 
-/* ─── API CALL ─── */
+/* ─── API CALL — retry + backoff exponencial + timeout AbortController ─── */
 function call(fn) {
   var args = Array.prototype.slice.call(arguments, 1);
   var url = window.GAS_EXEC_URL;
   if (!url) return Promise.reject(new Error('GAS_EXEC_URL no configurada.'));
-  return fetch(url, {
-    method: 'POST',
-    redirect: 'follow',
-    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify({ fn: fn, args: args })
-  })
-  .then(function(r) { return r.json(); })
-  .then(function(j) {
-    if (j && j.__error) throw new Error(j.__error);
-    return (j && j.__result !== undefined) ? j.__result : j;
-  });
+
+  function attempt() {
+    return new Promise(function(resolve, reject) {
+      var ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+      var timer = ctrl ? setTimeout(function() {
+        ctrl.abort();
+        var e = new Error('Tiempo de espera agotado. Intente de nuevo.');
+        e.code = 'TIMEOUT'; reject(e);
+      }, 30000) : null;
+
+      fetch(url, {
+        method: 'POST', redirect: 'follow',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ fn: fn, args: args }),
+        signal: ctrl ? ctrl.signal : undefined
+      })
+      .then(function(r) { return r.json(); })
+      .then(function(j) {
+        if (timer) clearTimeout(timer);
+        if (j && j.__error) {
+          var e = new Error(j.__error);
+          var m = String(j.__error || '').toLowerCase();
+          if (/expirada|no iniciada|sesi/.test(m)) e.code = 'AUTH';
+          else if (/permiso|prohibido|forbidden/i.test(m)) e.code = 'FORBIDDEN';
+          else if (/obligatorio|requerido|invalid/i.test(m)) e.code = 'VALIDATION';
+          else e.code = 'SERVER';
+          reject(e); return;
+        }
+        resolve((j && j.__result !== undefined) ? j.__result : j);
+      })
+      .catch(function(err) {
+        if (timer) clearTimeout(timer);
+        if (err.code === 'TIMEOUT') { reject(err); return; }
+        var ne = new Error(err.message || 'Error de red'); ne.code = 'NETWORK'; reject(ne);
+      });
+    });
+  }
+
+  var DELAYS = [0, 800, 1600];
+  function run(i) {
+    return new Promise(function(res) { setTimeout(res, DELAYS[i] || 0); })
+      .then(attempt)
+      .catch(function(e) {
+        if ((e.code === 'NETWORK' || e.code === 'TIMEOUT') && i < DELAYS.length - 1) return run(i + 1);
+        if (e.code === 'AUTH' && S.sessionToken) window.dispatchEvent(new CustomEvent('paracel:session-expired'));
+        throw e;
+      });
+  }
+  return run(0);
+}
+
+function _friendlyError(e) {
+  if (!e) return 'Error desconocido.';
+  var c = e.code || '';
+  if (c === 'NETWORK' || /fetch|failed to fetch/i.test(e.message || '')) return 'Sin conexión. Verifique su red e intente de nuevo.';
+  if (c === 'TIMEOUT') return 'La operación tardó demasiado. Intente de nuevo.';
+  if (c === 'AUTH') return 'Sesión expirada. Vuelva a iniciar sesión.';
+  if (c === 'FORBIDDEN') return 'Sin permisos para esta operación.';
+  return e.message || 'Error desconocido. Intente de nuevo.';
 }
 
 /* ─── UTILS ─── */
@@ -294,7 +343,18 @@ function notify(msg, type) {
 
 /* ── Draft persistence ── */
 function saveDraft() {
-  try { localStorage.setItem('artesanos_draft', JSON.stringify({ values: S.values, gps: S.gps, startTs: S.startTs })); } catch (e) {}
+  try { localStorage.setItem('artesanos_draft', JSON.stringify({ values: S.values, gps: S.gps, startTs: S.startTs, savedAt: new Date().toISOString() })); } catch (e) {}
+}
+function hasDraft() {
+  try {
+    var raw = localStorage.getItem('artesanos_draft');
+    if (!raw) return false;
+    var d = JSON.parse(raw);
+    return !!(d && d.values && Object.keys(d.values).some(function(k) { return d.values[k] !== '' && d.values[k] != null; }));
+  } catch(e) { return false; }
+}
+function draftSavedAt() {
+  try { var d = JSON.parse(localStorage.getItem('artesanos_draft') || '{}'); return d.savedAt || null; } catch(e) { return null; }
 }
 function loadDraft() {
   try {
@@ -582,6 +642,23 @@ function buildSurvey() {
     return '<div class="topbar"><div class="page-title"><h2>📋 Nueva Encuesta</h2></div></div>' +
       '<div class="card" style="text-align:center;padding:42px"><span class="loader"></span><p class="muted" style="margin-top:10px">Cargando cuestionario…</p></div>';
   }
+
+  // Borrador pendiente — mostrar banner de recuperación antes del formulario
+  var noValuesYet = Object.keys(S.values).length === 0;
+  if (noValuesYet && hasDraft()) {
+    var ts = draftSavedAt();
+    var tsLabel = ts ? new Date(ts).toLocaleString('es-PY', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }) : '';
+    return '<div class="topbar"><div class="page-title"><h2>📋 Nueva Encuesta</h2></div></div>' +
+      '<div class="card" style="border-left:4px solid var(--accent);padding:22px 24px">' +
+        '<h3 style="margin-bottom:10px">📝 Hay un borrador guardado' + (tsLabel ? ' · ' + tsLabel : '') + '</h3>' +
+        '<p class="muted" style="margin-bottom:18px">Encontramos datos de una entrevista anterior sin enviar. ¿Desea retomar donde dejó o empezar desde cero?</p>' +
+        '<div style="display:flex;gap:10px;flex-wrap:wrap">' +
+          '<button class="btn accent" onclick="loadDraft();render()">📂 Retomar borrador</button>' +
+          '<button class="btn ghost" onclick="clearDraft();render()">🗑️ Empezar nuevo</button>' +
+        '</div>' +
+      '</div>';
+  }
+
   var sections = S.schema.sections || [];
   if (!sections.length) return '<div class="card"><p class="muted">No hay secciones configuradas. Ejecute "Inicializar sistema" en Administración.</p></div>';
   if (survSec >= sections.length) survSec = 0;
@@ -1065,6 +1142,7 @@ function submitSurveyNow() {
       .then(function(r) {
         survSubmitting = false;
         clearDraft(); survSec = 0;
+        S._navCache = {};
         var res = document.getElementById('surv-result');
         if (res) res.innerHTML =
           '<div class="success-box" style="margin-top:14px">' +
@@ -1383,13 +1461,20 @@ function buildExecSummary(dd) {
 }
 
 function loadDashboard() {
+  var now = Date.now();
+  var cached = S._navCache.dashboard;
+  var hasFilters = S.dashFilters && Object.keys(S.dashFilters).some(function(k) { return S.dashFilters[k]; });
+  if (cached && !hasFilters && (now - cached.ts < 90000)) {
+    S.dashData = cached.data;
+    render(); drawDashCharts(S.dashData); return;
+  }
   call('getDashboardSummary', S.sessionToken, S.dashFilters || {})
     .then(function(dd) {
       S.dashData = dd;
-      render();
-      drawDashCharts(dd);
+      if (!hasFilters) S._navCache.dashboard = { data: dd, ts: Date.now() };
+      render(); drawDashCharts(dd);
     })
-    .catch(function(e) { notify('Error al cargar tablero: ' + e.message, 'error'); });
+    .catch(function(e) { notify(_friendlyError(e), 'error'); });
 }
 
 function drawDashCharts(dd) {
@@ -1714,13 +1799,21 @@ function renderEmbeddedWebApp_() {
 }
 
 function init() {
-  // Registrar Service Worker
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(function() {});
   }
   window.addEventListener('online', function() {
     notify('Conexión restaurada — sincronizando encuestas pendientes…', 'ok');
     syncOfflineQueue();
+  });
+  // Sesión expirada: mostrar aviso y redirigir al login sin recargar la página
+  window.addEventListener('paracel:session-expired', function() {
+    notify('Sesión expirada. Vuelva a iniciar sesión.', 'error');
+    setTimeout(function() {
+      S.sessionToken = null; S.session = null;
+      saveSession();
+      S.tab = 'home'; render();
+    }, 2000);
   });
 
   if (shouldUseEmbeddedWebApp_()) {
