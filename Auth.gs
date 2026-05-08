@@ -135,6 +135,7 @@ function getBootstrap(token) {
 
 function listUsers(sessionToken) {
   var actor = requireRole_(sessionToken, ['admin']);
+  ensureDefaultUsers_();
   var rows = getRowsAsObjects_(APP_CFG.SHEETS.USERS).map(function(u) {
     return {
       username: u.username,

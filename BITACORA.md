@@ -526,6 +526,19 @@ Despues de hacer login en la Web App, ir al panel Admin y ejecutar **"Sincroniza
 
 ### Liberacion ejecutada
 - `npx clasp push -f`: exitoso, 14 archivos subidos.
+- `npx clasp version "v22 - usuarios visibles y clusters por encuestador"`: creada version 22.
+- `npx clasp deploy -i AKfycbwTpwf0GoONoPOEJnE-IxoDiYofcB54c_aQBoPlvaCrjYcJ_RNhdxqJC9dEClZH0Kk -V 22`: deployment publico actualizado.
+- `npx clasp deployments`: confirma `AKfycbwTpwf0GoONoPOEJnE-IxoDiYofcB54c_aQBoPlvaCrjYcJ_RNhdxqJC9dEClZH0Kk @22 - v22 - usuarios visibles y clusters por encuestador`.
+- Verificacion HTTP de `/exec`: status `200`.
+
+### Estado operativo
+- La vista `Administracion > Gestion de usuarios` ya no queda vacia: lista usuarios y permite crear/actualizar usuarios con clave temporal.
+- El mapa diferencia puntos por encuestador con paleta propia.
+- El estado pendiente/visitado se distingue por intensidad de color.
+- La planificacion automatica ahora separa viviendas en clusters por distancia antes de asignar sectores.
+
+### Liberacion ejecutada
+- `npx clasp push -f`: exitoso, 14 archivos subidos.
 - `npx clasp version "v21 - usuarios genericos y auto plan operativo"`: creada version 21.
 - `npx clasp deploy -i AKfycbwTpwf0GoONoPOEJnE-IxoDiYofcB54c_aQBoPlvaCrjYcJ_RNhdxqJC9dEClZH0Kk -V 21`: deployment publico actualizado.
 - `npx clasp deployments`: confirma `AKfycbwTpwf0GoONoPOEJnE-IxoDiYofcB54c_aQBoPlvaCrjYcJ_RNhdxqJC9dEClZH0Kk @21 - v21 - usuarios genericos y auto plan operativo`.
@@ -536,3 +549,42 @@ Despues de hacer login en la Web App, ir al panel Admin y ejecutar **"Sincroniza
 - Los usuarios se agregan sin borrar los existentes cuando se ejecuta `ensureDefaultUsers_()`; ademas, la vista de mapa fuerza esa verificacion antes de listar usuarios asignables.
 - En `Mapa territorial`, el admin puede asignar puntos manualmente o usar `Auto-planificar operativo`.
 - El auto-plan guarda asignaciones reales en `ASIGNACIONES_VIVIENDA`; no queda solo como simulacion visual.
+
+## 2026-05-08 - Correccion gestion de usuarios y clusters por encuestador
+
+### Problema reportado
+- En `Administracion > Gestion de usuarios` solo aparecia texto informativo; no se mostraba ninguna lista ni formulario.
+- En el mapa se pidio diferenciar visualmente puntos por encuestador:
+  - color tenue para viviendas asignadas pendientes,
+  - color fuerte para viviendas ya encuestadas/cerradas,
+  - capas de caminos/rutas,
+  - distribucion inteligente por sectores o clusters de distancia.
+
+### Cambios aplicados
+- `Auth.gs`:
+  - `listUsers(sessionToken)` ejecuta `ensureDefaultUsers_()` antes de listar, para que aparezcan `encuestador1` a `encuestador8` sin depender de reset manual.
+- `Client.html`:
+  - Se agrego carga real de usuarios desde `listUsers`.
+  - Se agrego tabla de usuarios en Administracion.
+  - Se agrego formulario rapido para crear/actualizar usuarios con `saveUser`.
+  - Se reemplazo la distribucion alternada de viviendas por clustering geografico:
+    - agrupa viviendas pendientes por distancia,
+    - asigna cada cluster a un encuestador,
+    - ordena cada cluster por ruta de vecino mas cercano.
+  - En el mapa, cada encuestador recibe un color propio.
+  - Marcadores pendientes usan color tenue; marcadores visitados usan color fuerte.
+  - Se agrego capa `Rutas y caminos operativos`, con polilineas por sector/encuestador.
+  - La base OpenStreetMap queda como capa de referencia para caminos existentes del territorio.
+- `Styles.html`:
+  - Se agregaron estilos para leyenda de encuestadores, colores y rutas.
+
+### Validacion local
+- `Client.html`: script embebido validado con `node --check`.
+- `Auth.gs`: validado con `node --check`.
+
+### Pendiente de liberacion
+1. `npx clasp push -f`.
+2. Crear version GAS.
+3. Actualizar deployment publico.
+4. Verificar `/exec` HTTP 200.
+5. Commit/push Git.

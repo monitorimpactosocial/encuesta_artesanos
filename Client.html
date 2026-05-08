@@ -25,6 +25,8 @@
     fieldMapSelected: {},
     responses: null,
     responsesError: null,
+    adminUsers: null,
+    adminUsersError: null,
     filters: {},
     startTs: new Date().toISOString(),
     sourceUuid: cryptoRandom_()
@@ -236,7 +238,7 @@
     finally{setLoading(false);}
   }
   async function doResetUsers_(){
-    if(!confirm('¿Restablecer todos los usuarios a los valores por defecto?\n\nCredenciales después del reset:\n  diego.meza / 123456\n  lati / 123456\n  encuestador / 123456\n  viewer / 123456\n\nEsta acción sobreescribe cualquier usuario existente.')) return;
+    if(!confirm('¿Restablecer todos los usuarios a los valores por defecto?\n\nCredenciales después del reset:\n  diego.meza / 123456\n  lati / 123456\n  encuestador1..encuestador8 / 123456\n  viewer / 123456\n\nEsta acción sobreescribe cualquier usuario existente.')) return;
     setLoading(true);
     try{
       const r=await callServer('resetUsers');
@@ -326,7 +328,7 @@
     return '<div class="field-map-layout"><div class="field-map-main card"><div class="section-title"><div><h3>'+esc(d.name)+'</h3><p class="muted">Recorte operativo para planificar recorridos, viviendas y carga de encuesta.</p></div><span class="pill ok">'+esc(d.barloc)+' · '+esc(d.district)+'</span></div><div id="fieldMapBox" class="field-map-box"></div></div>'+
       '<div class="field-map-panel"><div class="card"><h3>Plan de cobertura</h3><div class="mini-kpis"><div><b>'+n(s.total||d.stats.viviendasIne)+'</b><span>viviendas mapeadas</span></div><div><b>'+n(s.mias||0)+'</b><span>asignadas a mi usuario</span></div><div><b>'+n(s.pendientesMias||0)+'</b><span>pendientes propias</span></div><div><b>'+n(s.visitadas||0)+'</b><span>visitadas con encuesta</span></div></div></div>'+
       '<div class="card"><h3>Lectura territorial</h3><div class="mini-kpis"><div><b>'+esc(m.areaKm2)+'</b><span>km² aprox. de polígono</span></div><div><b>'+esc(m.maxDistanceKm)+'</b><span>km entre extremos</span></div><div><b>'+esc(m.avgNearestM)+'</b><span>m al vecino más cercano</span></div><div><b>'+n(s.sinAsignar||0)+'</b><span>sin asignar</span></div></div></div>'+
-      '<div class="card"><h3>Capas</h3><label class="check-item"><input type="checkbox" id="layerBoundary" checked> <span>Límite Isla Tuyu</span></label><label class="check-item"><input type="checkbox" id="layerDwellings" checked> <span>Viviendas existentes</span></label><label class="check-item"><input type="checkbox" id="layerLabels" checked> <span>Números de vivienda</span></label><div class="toolbar" style="margin-top:12px"><button class="btn secondary" id="fitFieldMap">Centrar todo</button></div></div>'+
+      '<div class="card"><h3>Capas</h3><label class="check-item"><input type="checkbox" id="layerBoundary" checked> <span>Límite Isla Tuyu</span></label><label class="check-item"><input type="checkbox" id="layerDwellings" checked> <span>Viviendas existentes</span></label><label class="check-item"><input type="checkbox" id="layerRoutes" checked> <span>Rutas y caminos operativos</span></label><label class="check-item"><input type="checkbox" id="layerLabels" checked> <span>Números de vivienda</span></label><div class="field-legend">'+assignmentLegend_(d)+'</div><div class="toolbar" style="margin-top:12px"><button class="btn secondary" id="fitFieldMap">Centrar todo</button></div></div>'+
       adminBox+'<div class="card"><h3>Fuente y uso</h3><p class="small muted">Base: '+esc(d.source)+'. Los puntos son viviendas del marco INE; deben validarse en campo porque no sustituyen confirmación local, ocupación actual ni cantidad de personas.</p></div></div></div>';
   }
   async function loadFieldMap_(){
@@ -352,7 +354,9 @@
     layers.boundary=L.polygon(d.boundary,{color:'#0f3d33',weight:3,fillColor:'#c8a24a',fillOpacity:.12}).addTo(map).bindPopup('Límite operativo: '+esc(d.name));
     layers.dwellings=L.layerGroup().addTo(map);
     (d.dwellings||[]).filter(p=>p.visible!==false).forEach(p=>{
-      const label='<span class="dwelling-label">'+p.n+'</span>';
+      const strong=p.status==='visitada';
+      const color=userColor_(p.assigned_to,strong);
+      const label='<span class="dwelling-label" style="background:'+esc(color.bg)+';border-color:'+esc(color.border)+';color:'+esc(color.text)+'">'+p.n+'</span>';
       const cls='dwelling-marker status-'+(p.status||'sin_asignar')+(p.assigned_to===(d.currentUser&&d.currentUser.username)?' mine':'')+(state.fieldMapSelected[p.id]?' selected':'');
       const icon=L.divIcon({className:cls,html:label,iconSize:[26,26],iconAnchor:[13,13]});
       const mine=p.assigned_to===(d.currentUser&&d.currentUser.username);
@@ -363,12 +367,19 @@
       const marker=L.marker([p.lat,p.lng],{icon:icon}).bindPopup('<b>Vivienda '+p.n+'</b><br>INE fid: '+esc(p.id)+assigned+visited+'<br>'+p.lat.toFixed(6)+', '+p.lng.toFixed(6)+action+adminHint).addTo(layers.dwellings);
       if(isAdmin) marker.on('click',()=>toggleDwellingSelection_(p.id));
     });
+    layers.routes=L.layerGroup().addTo(map);
+    routeGroups_(d.dwellings||[]).forEach(g=>{
+      if(g.points.length<2)return;
+      const c=userColor_(g.user,true).border;
+      L.polyline(g.points.map(p=>[p.lat,p.lng]),{color:c,weight:4,opacity:.68,dashArray:g.visited?'':'6 7'}).bindPopup('Ruta/camino operativo: '+esc(g.user)+' · '+g.points.length+' viviendas').addTo(layers.routes);
+    });
     const bounds=L.latLngBounds(d.bounds);
     map.fitBounds(bounds,{padding:[18,18]});
     state.fieldMapInstance={map:map,layers:layers};
     const fit=document.getElementById('fitFieldMap'); if(fit) fit.onclick=()=>map.fitBounds(bounds,{padding:[18,18]});
     const cbBoundary=document.getElementById('layerBoundary'); if(cbBoundary) cbBoundary.onchange=()=>toggleMapLayer_(layers.boundary,cbBoundary.checked);
     const cbDwellings=document.getElementById('layerDwellings'); if(cbDwellings) cbDwellings.onchange=()=>toggleMapLayer_(layers.dwellings,cbDwellings.checked);
+    const cbRoutes=document.getElementById('layerRoutes'); if(cbRoutes) cbRoutes.onchange=()=>toggleMapLayer_(layers.routes,cbRoutes.checked);
     const cbLabels=document.getElementById('layerLabels'); if(cbLabels) cbLabels.onchange=()=>{el.classList.toggle('hide-dwelling-labels',!cbLabels.checked);};
     bindAssignmentControls_();
   }
@@ -402,6 +413,30 @@
     const xy=coords.map(p=>[R*(p[1]*Math.PI/180)*Math.cos(lat0), R*(p[0]*Math.PI/180)]);
     let sum=0; for(let i=0;i<xy.length;i++){const a=xy[i],b=xy[(i+1)%xy.length]; sum+=a[0]*b[1]-b[0]*a[1];}
     return Math.abs(sum)/2;
+  }
+  function userColor_(username,strong){
+    const palette=['#2563eb','#16a34a','#dc2626','#9333ea','#ca8a04','#0891b2','#db2777','#4f46e5','#0f766e','#ea580c'];
+    if(!username) return {bg:strong?'#475569':'#e5e7eb',border:'#94a3b8',text:strong?'#fff':'#334155'};
+    let h=0; String(username).split('').forEach(ch=>h=(h*31+ch.charCodeAt(0))>>>0);
+    const hex=palette[h%palette.length];
+    return {bg:strong?hex:hexToRgba_(hex,.24),border:hex,text:strong?'#fff':'#0f172a'};
+  }
+  function hexToRgba_(hex,a){
+    const n=parseInt(String(hex).replace('#',''),16);
+    return 'rgba('+((n>>16)&255)+','+((n>>8)&255)+','+(n&255)+','+a+')';
+  }
+  function assignmentLegend_(d){
+    const users=[...new Set(((d.dwellings||[]).map(p=>p.assigned_to).filter(Boolean)))].slice(0,12);
+    if(!users.length)return '<p class="small muted" style="margin-top:10px">Sin asignaciones todavía. El mapa base OSM muestra caminos; al asignar se dibujan rutas operativas por sector.</p>';
+    return '<div class="legend-list">'+users.map(u=>{const c=userColor_(u,true);return '<span><i style="background:'+esc(c.border)+'"></i>'+esc(u)+'</span>';}).join('')+'<p class="small muted">Color tenue = asignado pendiente. Color fuerte = encuestado/cerrado. Línea = ruta o camino operativo del sector.</p></div>';
+  }
+  function routeGroups_(pts){
+    const by={};
+    pts.filter(p=>p.visible!==false && p.assigned_to).forEach(p=>{(by[p.assigned_to]||(by[p.assigned_to]=[])).push(p);});
+    return Object.keys(by).map(u=>{
+      const points=by[u].slice().sort((a,b)=>(Number(a.route_order)||9999)-(Number(b.route_order)||9999));
+      return {user:u,points:points,visited:points.every(p=>p.status==='visitada')};
+    });
   }
   function toggleDwellingSelection_(id){
     if(state.fieldMapSelected[id]) delete state.fieldMapSelected[id]; else state.fieldMapSelected[id]=true;
@@ -451,9 +486,9 @@
     const users=genericFieldUsers_().slice(0, Math.max(1,userCount));
     const dwellings=((state.fieldMap&&state.fieldMap.dwellings)||[]).filter(p=>p.visible!==false && p.status!=='visitada');
     const pending=sortSpatial_(dwellings.filter(p=>!p.assigned_to || p.status==='sin_asignar'));
-    const groups=users.map(u=>({user:u,points:[]}));
+    const clusters=clusterDwellings_(pending, users.length);
+    const groups=users.map((u,i)=>({user:u,points:(clusters[i]||[]),sector:i+1}));
     if(!groups.length || !pending.length) return {groups:groups,assignments:[],pending:pending.length,totalHours:0};
-    pending.forEach((p,i)=>groups[i%groups.length].points.push(p));
     const assignments=[];
     let totalHours=0;
     groups.forEach(g=>{
@@ -469,10 +504,31 @@
         priority:'normal',
         route_order:String(startOrder+i),
         status:'asignada',
-        notes:'Plan auto: '+g.points.length+' viviendas; '+minutesPerSurvey+' min/encuesta; '+dist.toFixed(2)+' km ruta; '+g.minutes+' min estimados.'
+        notes:'Sector '+g.sector+' por cluster de distancia: '+g.points.length+' viviendas; '+minutesPerSurvey+' min/encuesta; '+dist.toFixed(2)+' km ruta; '+g.minutes+' min estimados.'
       }));
     });
     return {groups:groups,assignments:assignments,pending:pending.length,totalHours:totalHours};
+  }
+  function clusterDwellings_(pts,k){
+    if(!pts.length || k<=1)return [pts.slice()];
+    k=Math.min(k,pts.length);
+    const ordered=sortSpatial_(pts);
+    let centers=[];
+    for(let i=0;i<k;i++) centers.push(ordered[Math.floor(i*(ordered.length-1)/Math.max(1,k-1))]);
+    let groups=[];
+    for(let step=0;step<10;step++){
+      groups=centers.map(()=>[]);
+      pts.forEach(p=>{
+        let best=0,bestD=Infinity;
+        centers.forEach((c,i)=>{const d=haversineKm_(p.lat,p.lng,c.lat,c.lng); if(d<bestD){bestD=d;best=i;}});
+        groups[best].push(p);
+      });
+      centers=groups.map((g,i)=>g.length?{lat:g.reduce((s,p)=>s+p.lat,0)/g.length,lng:g.reduce((s,p)=>s+p.lng,0)/g.length}:centers[i]);
+    }
+    return groups
+      .map((g,i)=>({points:g,center:centers[i]}))
+      .sort((a,b)=>a.center.lng-b.center.lng || b.center.lat-a.center.lat)
+      .map(g=>g.points);
   }
   function nearestRoute_(pts){
     const left=pts.slice();
@@ -633,6 +689,47 @@
     const s=document.getElementById('syncMeta'); if(s) s.onclick=async()=>{setLoading(true);try{await callServer('syncQuestionnaireMetadata',sessionToken());toast('success','Cuestionario sincronizado.');}catch(e){toast('error',e.message||String(e));}finally{setLoading(false);}};
     const r=document.getElementById('rebuildAnalytics'); if(r) r.onclick=async()=>{setLoading(true);try{const res=await callServer('rebuildAnalytics',sessionToken());toast('success','Base analítica reconstruida: '+res.rows+' filas.');}catch(e){toast('error',e.message||String(e));}finally{setLoading(false);}};
   }
+
+  async function loadAdminUsers_(){
+    if(!state.session || state.session.role!=='admin')return;
+    state.adminUsersError=null;
+    try{state.adminUsers=await callServer('listUsers',sessionToken());}
+    catch(e){state.adminUsersError=e.message||String(e);}
+    render();
+  }
+  async function saveNewUser_(){
+    const username=(document.getElementById('newUserName')?.value||'').trim();
+    if(!username){toast('error','Ingrese un usuario.');return;}
+    const user={
+      username:username,
+      display_name:(document.getElementById('newUserDisplay')?.value||username).trim(),
+      role:document.getElementById('newUserRole')?.value||'editor',
+      password_temporal:document.getElementById('newUserPass')?.value||'123456',
+      active:'SI',
+      must_change_password:'SI',
+      notes:document.getElementById('newUserNotes')?.value||''
+    };
+    setLoading(true);
+    try{await callServer('saveUser',sessionToken(),user); toast('success','Usuario guardado: '+username); state.adminUsers=null; await loadAdminUsers_();}
+    catch(e){toast('error',e.message||String(e));}
+    finally{setLoading(false);}
+  }
+  adminView_ = function(){
+    const links=state.bootstrap.app.links||{};
+    const users=state.adminUsers||[];
+    const userBox=state.adminUsersError?'<div class="card error"><h3>Error al cargar usuarios</h3><p>'+esc(state.adminUsersError)+'</p><button class="btn" id="reloadUsers">Reintentar</button></div>':
+      '<div class="card"><div class="section-title"><div><h3>Gestion de usuarios</h3><p class="muted">Cree usuarios genericos o asigne nombre real al usuario de campo. Los cambios se guardan en la hoja USUARIOS.</p></div><button class="btn secondary" id="reloadUsers">Actualizar</button></div>'+
+      (!state.adminUsers?'<p><span class="loader"></span> Cargando usuarios...</p>':
+      '<div class="grid cols-4"><label>Usuario<input class="control" id="newUserName" placeholder="encuestador9"></label><label>Nombre visible<input class="control" id="newUserDisplay" placeholder="Nombre real o cuadrilla"></label><label>Rol<select class="control" id="newUserRole"><option>editor</option><option>viewer</option><option>admin</option></select></label><label>Clave temporal<input class="control" id="newUserPass" value="123456"></label></div><label style="display:block;margin-top:10px">Notas<input class="control" id="newUserNotes" placeholder="Ej: asignado a persona real el dia del operativo"></label><div class="toolbar" style="margin-top:12px"><button class="btn" id="saveNewUser">Guardar usuario</button></div><div class="table-wrap" style="margin-top:14px"><table><thead><tr><th>Usuario</th><th>Nombre</th><th>Rol</th><th>Activo</th><th>Cambio clave</th><th>Notas</th></tr></thead><tbody>'+users.map(u=>'<tr><td><b>'+esc(u.username)+'</b></td><td>'+esc(u.display_name)+'</td><td>'+esc(u.role)+'</td><td>'+esc(u.active)+'</td><td>'+esc(u.must_change_password)+'</td><td>'+esc(u.notes)+'</td></tr>').join('')+'</tbody></table></div>')+'</div>';
+    return '<div class="grid cols-2"><div class="card"><h3>Acciones de mantenimiento</h3><p class="muted">Utilice estas acciones luego de cambios en el cuestionario o para reconstruir bases analiticas.</p><div class="toolbar"><button class="btn" id="syncMeta">Sincronizar cuestionario</button><button class="btn secondary" id="rebuildAnalytics">Reconstruir analitica</button></div></div><div class="card"><h3>Enlaces operativos</h3><div class="admin-links"><a href="'+esc(links.spreadsheetUrl)+'" target="_blank">Google Sheet backend</a><a href="'+esc(links.photosFolderUrl)+'" target="_blank">Carpeta Drive de fotos</a><a href="'+esc(links.repositoryUrl)+'" target="_blank">Repositorio GitHub</a></div></div></div>'+userBox;
+  };
+  bindAdmin_ = function(){
+    const s=document.getElementById('syncMeta'); if(s) s.onclick=async()=>{setLoading(true);try{await callServer('syncQuestionnaireMetadata',sessionToken());toast('success','Cuestionario sincronizado.');}catch(e){toast('error',e.message||String(e));}finally{setLoading(false);}};
+    const r=document.getElementById('rebuildAnalytics'); if(r) r.onclick=async()=>{setLoading(true);try{const res=await callServer('rebuildAnalytics',sessionToken());toast('success','Base analitica reconstruida: '+res.rows+' filas.');}catch(e){toast('error',e.message||String(e));}finally{setLoading(false);}};
+    const reload=document.getElementById('reloadUsers'); if(reload) reload.onclick=()=>{state.adminUsers=null;loadAdminUsers_();};
+    const save=document.getElementById('saveNewUser'); if(save) save.onclick=saveNewUser_;
+    if(state.session&&state.session.role==='admin'&&!state.adminUsers&&!state.adminUsersError) loadAdminUsers_();
+  };
 
   document.addEventListener('DOMContentLoaded', init);
 })();
