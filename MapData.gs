@@ -115,6 +115,7 @@ function assignmentSummary_(dwellings, actor) {
 }
 
 function fieldMapAssignableUsers_() {
+  ensureDefaultUsers_();
   return getRowsAsObjects_(APP_CFG.SHEETS.USERS).filter(function(u) {
     return asBool_(u.active) && ['admin','editor'].indexOf(normalizeText_(u.role)) >= 0;
   }).map(function(u) {

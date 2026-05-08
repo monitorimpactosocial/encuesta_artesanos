@@ -286,6 +286,14 @@ function defaultUsers_() {
     ['diego.meza',  'Diego Meza',       'admin',  '', '123456', 'SI', 'NO', 'Administrador Paracel.'],
     ['lati',        'Lati',             'admin',  '', '123456', 'SI', 'NO', 'Administrador Paracel.'],
     ['encuestador', 'Encuestador',      'editor', '', '123456', 'SI', 'NO', 'Encuestador de campo.'],
+    ['encuestador1','Encuestador/a 1',  'editor', '', '123456', 'SI', 'SI', 'Usuario generico reasignable para operativo territorial.'],
+    ['encuestador2','Encuestador/a 2',  'editor', '', '123456', 'SI', 'SI', 'Usuario generico reasignable para operativo territorial.'],
+    ['encuestador3','Encuestador/a 3',  'editor', '', '123456', 'SI', 'SI', 'Usuario generico reasignable para operativo territorial.'],
+    ['encuestador4','Encuestador/a 4',  'editor', '', '123456', 'SI', 'SI', 'Usuario generico reasignable para operativo territorial.'],
+    ['encuestador5','Encuestador/a 5',  'editor', '', '123456', 'SI', 'SI', 'Usuario generico reasignable para operativo territorial.'],
+    ['encuestador6','Encuestador/a 6',  'editor', '', '123456', 'SI', 'SI', 'Usuario generico reasignable para operativo territorial.'],
+    ['encuestador7','Encuestador/a 7',  'editor', '', '123456', 'SI', 'SI', 'Usuario generico reasignable para operativo territorial.'],
+    ['encuestador8','Encuestador/a 8',  'editor', '', '123456', 'SI', 'SI', 'Usuario generico reasignable para operativo territorial.'],
     ['viewer',      'Visualizador',     'viewer', '', '123456', 'SI', 'NO', 'Solo lectura.']
   ];
 }

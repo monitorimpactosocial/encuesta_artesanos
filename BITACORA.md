@@ -472,3 +472,67 @@ Despues de hacer login en la Web App, ir al panel Admin y ejecutar **"Sincroniza
 - La hoja `ASIGNACIONES_VIVIENDA` se crea/asegura automaticamente al abrir el mapa o ejecutar setup/fix.
 - La trazabilidad territorial queda en `RESPUESTAS` mediante `vivienda_mapeada_id` y campos relacionados.
 - Pendiente de prueba funcional viva: entrar como admin, seleccionar 2-3 viviendas, asignarlas a `encuestador`, entrar con ese usuario y verificar que puede iniciar la encuesta desde el punto asignado.
+
+## 2026-05-08 - Usuarios genericos y auto-planificacion de operativo
+
+### Necesidad planteada
+- Crear usuarios genericos (`encuestador1`, `encuestador2`, etc.) para luego asignarlos a personas reales.
+- Permitir que el administrador vea viviendas/puntos y los asigne a cada usuario generico.
+- Considerar tiempos, distancias y complejidad del instrumento para armar un plan eficiente de implementacion del relevamiento.
+
+### Implementacion aplicada
+- `Seed.gs`:
+  - Agregados 8 usuarios genericos activos:
+    - `encuestador1` a `encuestador8`
+    - rol `editor`
+    - clave temporal `123456`
+    - `must_change_password=SI`
+  - `ensureDefaultUsers_()` permite agregarlos sin borrar usuarios existentes.
+- `MapData.gs`:
+  - `fieldMapAssignableUsers_()` ahora ejecuta `ensureDefaultUsers_()` antes de listar usuarios asignables, de modo que los usuarios genericos aparezcan aunque el administrador mantenga una sesion previa.
+- `Client.html`:
+  - La vista `Mapa territorial` mantiene asignacion manual por seleccion de puntos.
+  - Se agrego panel `Auto-planificar operativo`.
+  - El panel permite definir:
+    - cantidad de encuestadores a usar,
+    - minutos estimados por encuesta,
+    - velocidad de traslado en km/h,
+    - orden inicial de ruta.
+  - La app calcula una estimacion inicial de minutos por vivienda segun complejidad del cuestionario:
+    - cantidad total de preguntas,
+    - preguntas obligatorias,
+    - campos de foto,
+    - campos GPS,
+    - preguntas de texto/multiseleccion/numericas.
+  - La planificacion automatica:
+    - toma viviendas no visitadas y sin asignacion,
+    - ordena territorialmente los puntos,
+    - reparte cargas entre usuarios genericos,
+    - optimiza cada tanda con una ruta por vecino mas cercano,
+    - calcula distancia aproximada y horas por encuestador,
+    - guarda asignaciones en `ASIGNACIONES_VIVIENDA` usando `saveDwellingAssignments`.
+
+### Validacion local
+- `Client.html`: script embebido validado con `node --check`.
+- `Seed.gs`: validado con `node --check`.
+- `MapData.gs`: validado con `node --check`.
+
+### Pendiente de liberacion
+1. `npx clasp push -f`.
+2. Crear version GAS.
+3. Actualizar deployment publico.
+4. Verificar `/exec` HTTP 200.
+5. Commit/push Git.
+
+### Liberacion ejecutada
+- `npx clasp push -f`: exitoso, 14 archivos subidos.
+- `npx clasp version "v21 - usuarios genericos y auto plan operativo"`: creada version 21.
+- `npx clasp deploy -i AKfycbwTpwf0GoONoPOEJnE-IxoDiYofcB54c_aQBoPlvaCrjYcJ_RNhdxqJC9dEClZH0Kk -V 21`: deployment publico actualizado.
+- `npx clasp deployments`: confirma `AKfycbwTpwf0GoONoPOEJnE-IxoDiYofcB54c_aQBoPlvaCrjYcJ_RNhdxqJC9dEClZH0Kk @21 - v21 - usuarios genericos y auto plan operativo`.
+- Verificacion HTTP de `/exec`: status `200`.
+
+### Estado operativo
+- La app publicada ya incluye usuarios genericos `encuestador1` a `encuestador8`.
+- Los usuarios se agregan sin borrar los existentes cuando se ejecuta `ensureDefaultUsers_()`; ademas, la vista de mapa fuerza esa verificacion antes de listar usuarios asignables.
+- En `Mapa territorial`, el admin puede asignar puntos manualmente o usar `Auto-planificar operativo`.
+- El auto-plan guarda asignaciones reales en `ASIGNACIONES_VIVIENDA`; no queda solo como simulacion visual.

@@ -320,7 +320,9 @@
     if(!state.fieldMap) return '<div class="card"><span class="loader"></span> Cargando mapa territorial...</div>';
     const d=state.fieldMap, m=fieldMapMetrics_(d), s=d.assignmentSummary||{}, isAdmin=(d.currentUser&&d.currentUser.role)==='admin';
     const users=d.users||[];
-    const adminBox=isAdmin?'<div class="card assign-panel"><h3>Asignar viviendas</h3><p class="small muted">Seleccione puntos en el mapa y asigne una tanda de trabajo. Los puntos visitados quedan bloqueados como evidencia.</p><label>Encuestador<select class="control" id="assignUser"><option value="">Seleccione...</option>'+users.map(u=>'<option value="'+esc(u.username)+'">'+esc(u.display_name)+' · '+esc(u.username)+'</option>').join('')+'</select></label><div class="grid cols-2" style="margin-top:10px"><label>Prioridad<select class="control" id="assignPriority"><option>normal</option><option>alta</option><option>baja</option></select></label><label>Orden inicial<input class="control" id="assignStart" type="number" min="1" value="1"></label></div><label style="margin-top:10px;display:block">Nota<input class="control" id="assignNotes" placeholder="Ej: iniciar por camino principal"></label><p class="pill" style="margin-top:10px"><span id="selectedCount">0</span> viviendas seleccionadas</p><div class="toolbar" style="margin-top:12px"><button class="btn" id="saveAssignments">Asignar selección</button><button class="btn secondary" id="clearAssignments">Liberar selección</button><button class="btn ghost" id="clearSelection">Limpiar selección</button></div></div>':'';
+    const adminBox=isAdmin?
+      '<div class="card assign-panel"><h3>Asignar viviendas</h3><p class="small muted">Seleccione puntos en el mapa y asigne una tanda de trabajo. Los puntos visitados quedan bloqueados como evidencia.</p><label>Encuestador<select class="control" id="assignUser"><option value="">Seleccione...</option>'+users.map(u=>'<option value="'+esc(u.username)+'">'+esc(u.display_name)+' · '+esc(u.username)+'</option>').join('')+'</select></label><div class="grid cols-2" style="margin-top:10px"><label>Prioridad<select class="control" id="assignPriority"><option>normal</option><option>alta</option><option>baja</option></select></label><label>Orden inicial<input class="control" id="assignStart" type="number" min="1" value="1"></label></div><label style="margin-top:10px;display:block">Nota<input class="control" id="assignNotes" placeholder="Ej: iniciar por camino principal"></label><p class="pill" style="margin-top:10px"><span id="selectedCount">0</span> viviendas seleccionadas</p><div class="toolbar" style="margin-top:12px"><button class="btn" id="saveAssignments">Asignar seleccion</button><button class="btn secondary" id="clearAssignments">Liberar seleccion</button><button class="btn ghost" id="clearSelection">Limpiar seleccion</button></div></div>'+
+      '<div class="card assign-panel"><h3>Auto-planificar operativo</h3><p class="small muted">Reparte viviendas pendientes entre usuarios genericos, ordena rutas por proximidad y estima tiempo por entrevista + traslado.</p><div class="grid cols-2"><label>Encuestadores<input class="control" id="planUsers" type="number" min="1" max="8" value="4"></label><label>Minutos por encuesta<input class="control" id="planMinutes" type="number" min="20" max="120" value="'+surveyTimeEstimate_()+'"></label><label>Velocidad km/h<input class="control" id="planTravelKmh" type="number" min="1" max="8" step="0.5" value="3.5"></label><label>Desde orden<input class="control" id="planStartOrder" type="number" min="1" value="1"></label></div><div id="planPreview" class="small muted" style="margin-top:10px">'+esc(planSummaryText_())+'</div><div class="toolbar" style="margin-top:12px"><button class="btn" id="autoPlanAssignments">Auto-planificar pendientes</button></div></div>':'';
     return '<div class="field-map-layout"><div class="field-map-main card"><div class="section-title"><div><h3>'+esc(d.name)+'</h3><p class="muted">Recorte operativo para planificar recorridos, viviendas y carga de encuesta.</p></div><span class="pill ok">'+esc(d.barloc)+' · '+esc(d.district)+'</span></div><div id="fieldMapBox" class="field-map-box"></div></div>'+
       '<div class="field-map-panel"><div class="card"><h3>Plan de cobertura</h3><div class="mini-kpis"><div><b>'+n(s.total||d.stats.viviendasIne)+'</b><span>viviendas mapeadas</span></div><div><b>'+n(s.mias||0)+'</b><span>asignadas a mi usuario</span></div><div><b>'+n(s.pendientesMias||0)+'</b><span>pendientes propias</span></div><div><b>'+n(s.visitadas||0)+'</b><span>visitadas con encuesta</span></div></div></div>'+
       '<div class="card"><h3>Lectura territorial</h3><div class="mini-kpis"><div><b>'+esc(m.areaKm2)+'</b><span>km² aprox. de polígono</span></div><div><b>'+esc(m.maxDistanceKm)+'</b><span>km entre extremos</span></div><div><b>'+esc(m.avgNearestM)+'</b><span>m al vecino más cercano</span></div><div><b>'+n(s.sinAsignar||0)+'</b><span>sin asignar</span></div></div></div>'+
@@ -409,11 +411,117 @@
   function updateSelectionCount_(){
     const el=document.getElementById('selectedCount'); if(el) el.textContent=Object.keys(state.fieldMapSelected||{}).length;
   }
+  function surveyComplexity_(){
+    const sections=(state.schema&&state.schema.sections)||[];
+    const questions=[]; sections.forEach(sec=>(sec.questions||[]).forEach(q=>questions.push(q)));
+    const count=questions.length;
+    const required=questions.filter(q=>q.required).length;
+    const photos=questions.filter(q=>q.input_type==='photo').length;
+    const geo=questions.filter(q=>q.input_type==='geolocation').length;
+    const text=questions.filter(q=>/textarea|multiselect|number/.test(String(q.input_type||''))).length;
+    const minutes=Math.round(Math.max(45, Math.min(95, 12 + count*0.85 + required*0.25 + photos*2.5 + geo*1.5 + text*0.35)));
+    return {questions:count,required:required,photos:photos,geo:geo,minutes:minutes};
+  }
+  function surveyTimeEstimate_(){return surveyComplexity_().minutes;}
+  function planSummaryText_(){
+    const c=surveyComplexity_();
+    return 'Estimacion: '+c.minutes+' min por vivienda, basada en '+c.questions+' preguntas, '+c.required+' obligatorias, '+c.photos+' fotos y '+c.geo+' puntos GPS.';
+  }
+  function genericFieldUsers_(){
+    const users=((state.fieldMap&&state.fieldMap.users)||[]).filter(u=>/^encuestador\d+$/i.test(String(u.username||'')));
+    return users.length?users:((state.fieldMap&&state.fieldMap.users)||[]).filter(u=>String(u.role||'')==='editor');
+  }
+  function sortSpatial_(pts){
+    const rows=pts.slice().sort((a,b)=>b.lat-a.lat || a.lng-b.lng);
+    if(!rows.length) return [];
+    const maxLat=Math.max(...rows.map(p=>p.lat));
+    const minLat=Math.min(...rows.map(p=>p.lat));
+    const latRange=Math.max(0.0001, maxLat-minLat);
+    const bucketSize=Math.max(0.001, latRange/5);
+    const buckets={};
+    rows.forEach(p=>{const k=Math.floor((maxLat-p.lat)/bucketSize); (buckets[k]||(buckets[k]=[])).push(p);});
+    return Object.keys(buckets).sort((a,b)=>Number(a)-Number(b)).flatMap((k,i)=>buckets[k].sort((a,b)=>i%2?b.lng-a.lng:a.lng-b.lng));
+  }
+  function routeDistanceKm_(pts){
+    let total=0;
+    for(let i=1;i<pts.length;i++) total+=haversineKm_(pts[i-1].lat,pts[i-1].lng,pts[i].lat,pts[i].lng);
+    return total;
+  }
+  function buildAutoPlan_(userCount, minutesPerSurvey, kmh, startOrder){
+    const users=genericFieldUsers_().slice(0, Math.max(1,userCount));
+    const dwellings=((state.fieldMap&&state.fieldMap.dwellings)||[]).filter(p=>p.visible!==false && p.status!=='visitada');
+    const pending=sortSpatial_(dwellings.filter(p=>!p.assigned_to || p.status==='sin_asignar'));
+    const groups=users.map(u=>({user:u,points:[]}));
+    if(!groups.length || !pending.length) return {groups:groups,assignments:[],pending:pending.length,totalHours:0};
+    pending.forEach((p,i)=>groups[i%groups.length].points.push(p));
+    const assignments=[];
+    let totalHours=0;
+    groups.forEach(g=>{
+      g.points=nearestRoute_(g.points);
+      const dist=routeDistanceKm_(g.points);
+      const travelMin=kmh>0?(dist/kmh*60):0;
+      const surveyMin=g.points.length*minutesPerSurvey;
+      totalHours+=((travelMin+surveyMin)/60);
+      g.distanceKm=dist; g.minutes=Math.round(travelMin+surveyMin);
+      g.points.forEach((p,i)=>assignments.push({
+        vivienda_id:p.id,
+        assigned_to:g.user.username,
+        priority:'normal',
+        route_order:String(startOrder+i),
+        status:'asignada',
+        notes:'Plan auto: '+g.points.length+' viviendas; '+minutesPerSurvey+' min/encuesta; '+dist.toFixed(2)+' km ruta; '+g.minutes+' min estimados.'
+      }));
+    });
+    return {groups:groups,assignments:assignments,pending:pending.length,totalHours:totalHours};
+  }
+  function nearestRoute_(pts){
+    const left=pts.slice();
+    const route=[];
+    if(!left.length) return route;
+    left.sort((a,b)=>a.lng-b.lng || b.lat-a.lat);
+    route.push(left.shift());
+    while(left.length){
+      const last=route[route.length-1];
+      let best=0, bestD=Infinity;
+      left.forEach((p,i)=>{const d=haversineKm_(last.lat,last.lng,p.lat,p.lng); if(d<bestD){bestD=d;best=i;}});
+      route.push(left.splice(best,1)[0]);
+    }
+    return route;
+  }
+  function updatePlanPreview_(){
+    const box=document.getElementById('planPreview'); if(!box)return;
+    const userCount=Number(document.getElementById('planUsers')?.value||4);
+    const minutes=Number(document.getElementById('planMinutes')?.value||surveyTimeEstimate_());
+    const kmh=Number(document.getElementById('planTravelKmh')?.value||3.5);
+    const start=Number(document.getElementById('planStartOrder')?.value||1);
+    const plan=buildAutoPlan_(userCount,minutes,kmh,start);
+    if(!plan.assignments.length){box.textContent='No hay viviendas pendientes para planificar o no hay usuarios genericos disponibles.';return;}
+    box.innerHTML='Pendientes a asignar: <b>'+n(plan.pending)+'</b>. Tiempo total estimado: <b>'+plan.totalHours.toFixed(1)+' h</b>.<br>'+
+      plan.groups.filter(g=>g.points.length).map(g=>esc(g.user.username)+': '+g.points.length+' viviendas, '+g.distanceKm.toFixed(2)+' km, '+(g.minutes/60).toFixed(1)+' h').join('<br>');
+  }
+  async function autoPlanAssignments_(){
+    const userCount=Number(document.getElementById('planUsers')?document.getElementById('planUsers').value:4)||4;
+    const minutes=Number(document.getElementById('planMinutes')?document.getElementById('planMinutes').value:surveyTimeEstimate_())||surveyTimeEstimate_();
+    const kmh=Number(document.getElementById('planTravelKmh')?document.getElementById('planTravelKmh').value:3.5)||3.5;
+    const start=Number(document.getElementById('planStartOrder')?document.getElementById('planStartOrder').value:1)||1;
+    const plan=buildAutoPlan_(userCount,minutes,kmh,start);
+    if(!plan.assignments.length){toast('error','No hay viviendas pendientes o usuarios genericos disponibles.');return;}
+    setLoading(true);
+    try{
+      const r=await callServer('saveDwellingAssignments',sessionToken(),plan.assignments);
+      toast('success','Plan operativo generado: '+r.saved+' viviendas, '+plan.groups.filter(g=>g.points.length).length+' encuestadores.');
+      state.fieldMapSelected={}; state.fieldMap=null; await loadFieldMap_();
+    }catch(e){toast('error',e.message||String(e));}
+    finally{setLoading(false);}
+  }
   function bindAssignmentControls_(){
     updateSelectionCount_();
     const clearSel=document.getElementById('clearSelection'); if(clearSel) clearSel.onclick=()=>{state.fieldMapSelected={};initFieldMap_();};
     const save=document.getElementById('saveAssignments'); if(save) save.onclick=()=>saveSelectedAssignments_(false);
     const clear=document.getElementById('clearAssignments'); if(clear) clear.onclick=()=>saveSelectedAssignments_(true);
+    const auto=document.getElementById('autoPlanAssignments'); if(auto) auto.onclick=autoPlanAssignments_;
+    ['planUsers','planMinutes','planTravelKmh','planStartOrder'].forEach(id=>{const el=document.getElementById(id); if(el) el.oninput=updatePlanPreview_;});
+    updatePlanPreview_();
   }
   async function saveSelectedAssignments_(release){
     const ids=Object.keys(state.fieldMapSelected||{});
