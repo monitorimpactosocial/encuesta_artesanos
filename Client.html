@@ -18,15 +18,25 @@
     loading: false,
     message: null,
     dashboard: null,
+    dashboardError: null,
     responses: null,
+    responsesError: null,
     filters: {},
     startTs: new Date().toISOString(),
     sourceUuid: cryptoRandom_()
   };
 
-  function callServer(fn, ...args){
-    return new Promise((resolve,reject)=>{
-      google.script.run.withSuccessHandler(resolve).withFailureHandler(reject)[fn](...args);
+  function callServer(fn){
+    var args = Array.prototype.slice.call(arguments, 1);
+    return new Promise(function(resolve, reject){
+      var done = false;
+      var timer = setTimeout(function(){
+        if(!done){ done=true; reject(new Error('Sin respuesta del servidor ('+fn+'). Intente de nuevo.')); }
+      }, 60000);
+      var runner = google.script.run
+        .withSuccessHandler(function(r){ if(!done){ done=true; clearTimeout(timer); resolve(r); } })
+        .withFailureHandler(function(e){ if(!done){ done=true; clearTimeout(timer); var m=e&&(e.message||e); reject(new Error(m?String(m):'Error del servidor')); } });
+      runner[fn].apply(runner, args);
     });
   }
   function esc(v){return String(v==null?'':v).replace(/[&<>'"]/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[s]));}
@@ -69,6 +79,7 @@
       if(bootstrap.session) state.session=Object.assign({token:sessionToken()}, bootstrap.session); else { state.session=null; localStorage.removeItem(SESSION_KEY); }
       restoreDraft(); seedDefaults_();
       render();
+      if(state.session) loadDashboard_();
     }catch(err){app.innerHTML='<div class="login-panel card error"><h3>Error al cargar</h3><p>'+esc(err.message||err)+'</p></div>';}
   }
 
@@ -76,7 +87,19 @@
 
   function render(){
     if(!state.schema || !state.bootstrap){renderSkeleton_();return;}
-    app.innerHTML = '<div class="app-shell">'+sidebar_()+'<main class="main">'+topbar_()+message_()+view_()+footer_()+'</main></div>';
+    var viewHtml;
+    try { viewHtml = view_(); }
+    catch(e){
+      if(state.tab==='dashboard') state.dashboardError = String(e);
+      if(state.tab==='respuestas') state.responsesError = String(e);
+      viewHtml = '<div class="card error"><h3>Error al mostrar la vista</h3><p>'+esc(String(e))+'</p></div>';
+    }
+    try {
+      app.innerHTML = '<div class="app-shell">'+sidebar_()+'<main class="main">'+topbar_()+message_()+viewHtml+footer_()+'</main></div>';
+    } catch(e2){
+      app.innerHTML = '<div style="padding:2rem;color:red"><b>Error crítico:</b> '+String(e2)+'</div>';
+      return;
+    }
     bindGlobal_();
     if(state.tab==='formulario') bindSurvey_();
     if(state.tab==='dashboard') bindDashboard_();
@@ -122,7 +145,7 @@
   function questionCount_(){return state.schema.sections.reduce((a,s)=>a+s.questions.length,0);}
 
   function loginView_(msg){
-    return '<div class="login-panel card"><h3>Acceso administrativo</h3><p class="muted">'+esc(msg||'Ingrese sus credenciales.')+'</p><div class="grid"><label>Usuario<input class="control" id="loginUser" autocomplete="username"></label><label>Contraseña<input class="control" id="loginPass" type="password" autocomplete="current-password"></label><button class="btn" id="loginBtn">Iniciar sesión</button></div><p class="small muted">Credenciales iniciales: admin/123, diego/456, user/123. Deben cambiarse luego del despliegue.</p></div>';
+    return '<div class="login-panel card"><h3>Iniciar sesión</h3><p class="muted">'+esc(msg||'Ingrese sus credenciales Paracel.')+'</p><div class="grid"><label>Usuario<input class="control" id="loginUser" placeholder="ej: diego.meza" autocomplete="username"></label><label>Contraseña<input class="control" id="loginPass" type="password" placeholder="6 dígitos" autocomplete="current-password"></label><button class="btn" id="loginBtn">Iniciar sesión</button></div><div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)"><p class="small muted">¿Primera vez o no puede ingresar? Restablezca los usuarios a los valores por defecto.</p><button class="btn secondary small" id="resetUsersBtn" style="font-size:12px">Restablecer usuarios</button></div></div>';
   }
 
   function surveyView_(){
@@ -179,22 +202,42 @@
   }
 
   function bindGlobal_(){
-    document.querySelectorAll('[data-nav]').forEach(b=>b.onclick=()=>{state.tab=b.dataset.nav; render(); if(state.tab==='dashboard') loadDashboard_(); if(state.tab==='respuestas') loadResponses_();});
+    document.querySelectorAll('[data-nav]').forEach(b=>b.onclick=()=>{state.tab=b.dataset.nav; render(); if(state.tab==='dashboard' && !state.dashboard && !state.dashboardError) loadDashboard_(); if(state.tab==='respuestas' && !state.responses && !state.responsesError) loadResponses_();});
     const openLogin=document.getElementById('openLogin'); if(openLogin) openLogin.onclick=()=>showLoginModal_();
     const logoutBtn=document.getElementById('logoutBtn'); if(logoutBtn) logoutBtn.onclick=()=>{callServer('logout',sessionToken()).finally(()=>{state.session=null;localStorage.removeItem(SESSION_KEY);toast('success','Sesión cerrada.');});};
     const loginBtn=document.getElementById('loginBtn'); if(loginBtn) loginBtn.onclick=doLogin_;
+    const resetBtn=document.getElementById('resetUsersBtn'); if(resetBtn) resetBtn.onclick=doResetUsers_;
   }
   function showLoginModal_(){
     document.body.insertAdjacentHTML('beforeend','<div class="modal-back" id="loginModal"><div class="modal"><div class="toolbar" style="justify-content:space-between"><h3>Iniciar sesión</h3><button class="btn secondary" id="closeLogin">Cerrar</button></div>'+loginView_('Ingrese sus credenciales administrativas.')+'</div></div>');
     document.getElementById('closeLogin').onclick=()=>document.getElementById('loginModal').remove();
     document.querySelector('#loginModal #loginBtn').onclick=doLogin_;
+    const mrb=document.querySelector('#loginModal #resetUsersBtn'); if(mrb) mrb.onclick=doResetUsers_;
   }
   async function doLogin_(){
     const u=(document.getElementById('loginUser')||{}).value||'';
     const p=(document.getElementById('loginPass')||{}).value||'';
     setLoading(true);
-    try{const s=await callServer('login',u,p); saveSession(s); const m=document.getElementById('loginModal'); if(m)m.remove(); toast('success','Sesión iniciada correctamente.');}
+    try{
+      const s=await callServer('login',u,p);
+      saveSession(s);
+      const m=document.getElementById('loginModal'); if(m)m.remove();
+      toast('success','Sesión iniciada correctamente.');
+      state.dashboard=null; state.dashboardError=null;
+      loadDashboard_();
+    }
     catch(err){toast('error',err.message||String(err));}
+    finally{setLoading(false);}
+  }
+  async function doResetUsers_(){
+    if(!confirm('¿Restablecer todos los usuarios a los valores por defecto?\n\nCredenciales después del reset:\n  diego.meza / 123456\n  lati / 123456\n  encuestador / 123456\n  viewer / 123456\n\nEsta acción sobreescribe cualquier usuario existente.')) return;
+    setLoading(true);
+    try{
+      const r=await callServer('resetUsers');
+      toast('success','Usuarios restablecidos ('+r.users+' usuarios). Ingrese con diego.meza / 123456');
+      render();
+    }
+    catch(err){toast('error','Error al restablecer: '+(err.message||String(err)));}
     finally{setLoading(false);}
   }
 
@@ -267,6 +310,7 @@
   }
 
   function dashboardView_(){
+    if(state.dashboardError) return '<div class="card error"><h3>Error al cargar el dashboard</h3><p>'+esc(state.dashboardError)+'</p><div class="toolbar" style="margin-top:12px"><button class="btn" id="retryDash">Reintentar</button></div></div>';
     if(!state.dashboard) return '<div class="card"><span class="loader"></span> Cargando dashboard...</div>';
     const k=state.dashboard.kpi, c=state.dashboard.charts;
     return filtersView_()+ '<div class="grid cols-4"><div class="kpi"><span>Entrevistas</span><b>'+n(k.total)+'</b></div><div class="kpi"><span>Mujeres</span><b>'+pct(k.pctMujeres)+'</b></div><div class="kpi"><span>Pertenencia indígena</span><b>'+pct(k.pctIndigena)+'</b></div><div class="kpi"><span>GPS capturado</span><b>'+pct(k.pctGps)+'</b></div><div class="kpi"><span>Edad promedio</span><b>'+esc(k.edadPromedio||'—')+'</b></div><div class="kpi"><span>Tamaño hogar prom.</span><b>'+esc(k.tamanoHogarPromedio||'—')+'</b></div><div class="kpi"><span>Venta digital</span><b>'+pct(k.pctVentaDigital)+'</b></div><div class="kpi"><span>Fotos cargadas</span><b>'+n(k.fotos)+'</b></div></div>'+ 
@@ -284,29 +328,44 @@
     return '<div class="bar-list">'+items.slice(0,10).map(x=>'<div class="bar-row"><span class="small">'+esc(x.label)+'</span><div class="bar-track"><div class="bar-fill" style="width:'+(Number(x.value||0)/max*100)+'%"></div></div><b>'+n(x.value)+'</b></div>').join('')+'</div>';
   }
   async function loadDashboard_(){
-    if(!state.session)return; setLoading(true);
-    try{state.dashboard=await callServer('getDashboardSummary',sessionToken(),state.filters); render();}
-    catch(err){toast('error',err.message||String(err));}
-    finally{setLoading(false);}
+    if(!state.session)return;
+    state.dashboardError=null;
+    try{
+      state.dashboard=await callServer('getDashboardSummary',sessionToken(),state.filters||{});
+    }catch(err){
+      const msg=String(err.message||err);
+      state.dashboardError=msg;
+      if(/expira|no iniciada|sesi/i.test(msg)){saveSession(null); localStorage.removeItem(SESSION_KEY);}
+    }
+    try{ render(); }catch(e){ app.innerHTML+='<div class="card error" style="margin:1rem"><b>Error al dibujar dashboard:</b> '+esc(String(e))+'</div>'; }
   }
   function bindDashboard_(){
-    const r=document.getElementById('refreshDash'); if(r) r.onclick=loadDashboard_;
+    const r=document.getElementById('refreshDash'); if(r) r.onclick=()=>{state.dashboardError=null; state.dashboard=null; loadDashboard_();};
+    const retry=document.getElementById('retryDash'); if(retry) retry.onclick=()=>{state.dashboardError=null; loadDashboard_();};
     document.querySelectorAll('.dash-filter').forEach(el=>el.onchange=()=>{state.filters[el.dataset.filter]=el.value; loadDashboard_();});
   }
 
   function responsesView_(){
+    if(state.responsesError) return '<div class="card error"><h3>Error al cargar respuestas</h3><p>'+esc(state.responsesError)+'</p><div class="toolbar" style="margin-top:12px"><button class="btn" id="retryResp">Reintentar</button></div></div>';
     if(!state.responses) return '<div class="card"><span class="loader"></span> Cargando respuestas...</div>';
     return '<div class="card"><div class="toolbar"><input class="control" id="respQ" placeholder="Buscar por nombre, cédula, comunidad, producto..." style="max-width:460px" value="'+esc(state.filters.q||'')+'"><button class="btn" id="searchResp">Buscar</button><button class="btn secondary" id="refreshResp">Actualizar</button></div><p class="muted small">Total encontrado: '+n(state.responses.total)+(state.responses.limited?' (vista limitada)':'')+'</p></div><div class="card">'+table_(state.responses.rows||[])+'</div>';
   }
   async function loadResponses_(){
-    if(!state.session)return; setLoading(true);
-    try{state.responses=await callServer('listResponses',sessionToken(),state.filters,250); render();}
-    catch(err){toast('error',err.message||String(err));}
-    finally{setLoading(false);}
+    if(!state.session)return;
+    state.responsesError=null;
+    try{
+      state.responses=await callServer('listResponses',sessionToken(),state.filters||{},250);
+    }catch(err){
+      const msg=String(err.message||err);
+      state.responsesError=msg;
+      if(/expira|no iniciada|sesi/i.test(msg)){saveSession(null); localStorage.removeItem(SESSION_KEY);}
+    }
+    try{ render(); }catch(e){ app.innerHTML+='<div class="card error" style="margin:1rem"><b>Error al dibujar respuestas:</b> '+esc(String(e))+'</div>'; }
   }
   function bindResponses_(){
+    const retryR=document.getElementById('retryResp'); if(retryR) retryR.onclick=()=>{state.responsesError=null; loadResponses_();};
     const s=document.getElementById('searchResp'); if(s) s.onclick=()=>{state.filters.q=document.getElementById('respQ').value; loadResponses_();};
-    const r=document.getElementById('refreshResp'); if(r) r.onclick=loadResponses_;
+    const r=document.getElementById('refreshResp'); if(r) r.onclick=()=>{state.responsesError=null; state.responses=null; loadResponses_();};
     const q=document.getElementById('respQ'); if(q) q.onkeydown=e=>{if(e.key==='Enter'){state.filters.q=q.value; loadResponses_();}};
   }
   function table_(rows){

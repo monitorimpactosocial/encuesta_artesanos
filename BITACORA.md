@@ -139,6 +139,105 @@ Esto inicializa el Sheet (CONFIG, EDICIONES, USUARIOS, CUESTIONARIO, CATALOGOS, 
 2. Cambiar contrasenas iniciales.
 3. QA end-to-end del formulario.
 
+## 2026-05-08 — Estado actual: tablero sin funcionar / problema por resolver
+
+### Resumen ejecutivo
+Después de múltiples sesiones de corrección (2026-05-06 al 2026-05-08), la Web App GAS está en **v15** pero el tablero gerencial sigue sin cargar. El origen del problema fue una regresión introducida en v13 que rompió completamente `google.script.run`, y aunque fue corregida en v14, quedaron efectos secundarios: usuarios sin credenciales válidas y comportamiento indeterminado del tablero. Esta entrada documenta el estado exacto para retomar sin perder contexto.
+
+---
+
+### Cronología de cambios realizados (2026-05-06 al 2026-05-08)
+
+#### Funcionalidades añadidas (GitHub + GAS)
+| Versión GAS | Commit GitHub | Descripción |
+|-------------|---------------|-------------|
+| v8–v9 | `e62ebac`–`8179be8` | Modo offline PWA, mapa Leaflet, cola offline |
+| v10 | `350b2fc` | Grabación de audio, columnas `audio_url` / `audio_duration_sec` en RESPUESTAS |
+| v11 | `9410796` | Resiliencia, seguridad, UX |
+| v11 | `c362e6d` | SW cache v2 para forzar descarga de `index.html` |
+| v11 | `825ec1a` | SW cache v4 |
+
+#### Correcciones de infraestructura (GAS solamente, no commiteadas a GitHub)
+| Versión GAS | Descripción |
+|-------------|-------------|
+| v12 | `Client.html`: estado de error (`dashboardError`, `responsesError`) para que el tablero muestre error en lugar de spinner eterno. `callServer` original: spread operator. |
+| **v13 ← REGRESIÓN CRÍTICA** | `callServer` reescrito con `.apply(null, args)` → rompe `this` binding de `google.script.run` → **todas las llamadas al servidor dejan de funcionar silenciosamente**: login, schema, dashboard, todo. |
+| v14 | `callServer` corregido: `runner[fn].apply(runner, args)` preserva `this` correctamente. `render()` con try-catch alrededor de `view_()`. Dashboard pre-cargado en background durante `init()` y `doLogin_()`. |
+| v15 | `Seed.gs`: usuarios Paracel (`diego.meza/123456`, `lati/123456`, `encuestador/123456`, `viewer/123456`). Login form: botón **"Restablecer usuarios"** que llama `resetUsers()` sin autenticación (para bootstrap de emergencia). |
+| v15 | Leaflet SRI hash eliminado de `index.html` (hash no coincidía con contenido servido por unpkg). SW cache v5. |
+
+---
+
+### Estado del repositorio al 2026-05-08
+
+| Canal | Estado |
+|-------|--------|
+| GitHub Pages (`index.html`) | Último commit `b78dd85`; funcional salvo que el tablero de `index.html` usa `fetch()` → GAS `doPost`, que está separado del canal GAS nativo. |
+| GAS Web App | Deployment v15, ID `AKfycbwTpwf0GoONoPOEJnE-IxoDiYofcB54c_aQBoPlvaCrjYcJ_RNhdxqJC9dEClZH0Kk` |
+| Sheet USUARIOS | Tiene usuarios `admin` y `user` con hashes de claves anteriores. Los nuevos usuarios (`diego.meza`, etc.) NO fueron escritos aún porque `resetUsers()` requiere que el usuario haga clic en el botón de la app. |
+| Código GAS (`Client.html`, `Seed.gs`) | Pusheado vía clasp a v15 pero **NO commiteado a GitHub** — hay divergencia entre repo y GAS. |
+
+---
+
+### Problema pendiente: tablero no carga y login bloqueado
+
+#### Síntoma observado
+- En modo incógnito (sin caché): la app carga el skeleton pero el tablero queda en "Cargando dashboard..." o directamente no responde al login.
+- El login parece no hacer nada o fallar silenciosamente.
+
+#### Causa raíz confirmada (v13)
+La función `callServer` en v13 usó `.apply(null, args)` como argumento de `this`, lo que rompió el proxy interno de `google.script.run`. Los métodos de ese proxy dependen de que `this` sea el objeto runner para enrutar la llamada al servidor. Con `this = null` el proxy falla silenciosamente: ni llama al success handler ni al failure handler. Resultado: cada `await callServer(...)` colgaba hasta el timeout de 60s sin dar ninguna respuesta.
+
+#### Estado post-v14 / v15
+El `callServer` está corregido con `runner[fn].apply(runner, args)`. Sin embargo, persisten dos incógnitas:
+
+1. **Credenciales inválidas**: La hoja USUARIOS todavía tiene los hashes de `admin/paracel2026` y `user/123`. Los nuevos usuarios (`diego.meza/123456`) no existen hasta que se ejecute `resetUsers()`. Si el usuario intenta login con `diego.meza / 123456` sobre los datos actuales del sheet, fallará con "Usuario no encontrado."
+
+2. **Posible caché GAS stale**: Múltiples deploys rápidos (v12→v13→v14→v15 en < 2 horas) pueden dejar la infraestructura de Google sirviendo una versión intermedia. El navegador del usuario podría estar cacheando una respuesta de GAS desactualizada incluso en incógnito (la caché de red de GAS es server-side, no de navegador).
+
+3. **Posible necesidad de re-autorización**: Después de tantos push/deploy, si el token de autorización OAuth del script `monitorimpactosocial@gmail.com` expiró o fue revocado, la Web App mostraría una pantalla de autorización antes de cargar el HTML. El usuario podría estar viendo esa pantalla en vez de la app.
+
+---
+
+### Plan de diagnóstico y corrección
+
+#### Paso 1 — Verificar que la Web App carga correctamente
+Abrir en incógnito: `https://script.google.com/macros/s/AKfycbwTpwf0GoONoPOEJnE-IxoDiYofcB54c_aQBoPlvaCrjYcJ_RNhdxqJC9dEClZH0Kk/exec`
+
+- **Si aparece pantalla "Se necesita autorización"**: El propietario (`monitorimpactosocial@gmail.com`) debe abrir el editor GAS y ejecutar cualquier función para re-autorizar.
+- **Si aparece skeleton "Cargando aplicativo..."** y luego error: el `init()` falló; ver mensaje de error en pantalla.
+- **Si carga correctamente con sidebar y home page**: ir al Paso 2.
+
+#### Paso 2 — Resetear usuarios
+En el formulario de login, hacer clic en **"Restablecer usuarios"** (botón agregado en v15) y confirmar el diálogo. Debe aparecer toast: *"Usuarios restablecidos (4 usuarios). Ingrese con diego.meza / 123456"*.
+
+Si ese botón no aparece o el toast no llega, hay un problema con `callServer` aún activo → revisar consola del navegador.
+
+#### Paso 3 — Login
+Ingresar `diego.meza` / `123456`. Tras login exitoso, el dashboard se pre-carga automáticamente en background.
+
+#### Paso 4 — Si el tablero sigue sin cargar
+Abrir consola del navegador (F12 → Console) y reportar cualquier error JavaScript. Los errores más probables serían:
+- `TypeError: runner[fn] is not a function` → función no existe en GAS
+- `Error: Sin respuesta del servidor (getDashboardSummary)` → timeout de 60s agotado, posiblemente la función tarda demasiado o GAS está bloqueado
+
+#### Paso 5 — Sincronizar código con GitHub
+Los archivos `Client.html` y `Seed.gs` tienen cambios de v12–v15 que no fueron commiteados. Una vez confirmado que v15 funciona, commitear y pushear para mantener paridad repo ↔ GAS.
+
+---
+
+### Deuda técnica identificada en esta sesión
+
+| # | Descripción | Riesgo |
+|---|-------------|--------|
+| 1 | `Client.html` / `Seed.gs` no commiteados a GitHub desde v11 | Alto: divergencia silenciosa |
+| 2 | `asNumber_()` en `Utils.gs` elimina el punto (separador de miles) pero rompe decimales reales (ej: `6.7` → `67`). Afecta cálculo de duración promedio en dashboard. | Bajo (solo KPI cosmético) |
+| 3 | No hay flujo de "cambiar contraseña" en `Client.html` | Medio: usuarios no pueden rotar su clave desde la UI |
+| 4 | `resetUsers()` es llamable sin autenticación desde `google.script.run` | Bajo: solo posible si alguien conoce la URL del script |
+| 5 | `SESSION_HOURS: 12` en `Config.gs` — sesiones expiran a las 12hs; al recargar la página hay que loguearse de nuevo aunque el día de trabajo no terminó | Bajo: molestia operativa |
+
+---
+
 ## 2026-05-05 - Correcciones de formulario + Deploy v4
 
 ### Problemas reportados y corregidos

@@ -280,29 +280,26 @@ function seedConfig_() {
   replaceSheetData_(APP_CFG.SHEETS.CONFIG, CONFIG_HEADERS_, rows);
 }
 
+function defaultUsers_() {
+  return [
+    ['diego.meza',  'Diego Meza',       'admin',  '', '123456', 'SI', 'NO', 'Administrador Paracel.'],
+    ['lati',        'Lati',             'admin',  '', '123456', 'SI', 'NO', 'Administrador Paracel.'],
+    ['encuestador', 'Encuestador',      'editor', '', '123456', 'SI', 'NO', 'Encuestador de campo.'],
+    ['viewer',      'Visualizador',     'viewer', '', '123456', 'SI', 'NO', 'Solo lectura.']
+  ];
+}
+
 function seedUsers_() {
   var existing = getRowsAsObjects_(APP_CFG.SHEETS.USERS);
   if (existing.length) return;
-  var rows = [
-    ['admin','Administrador','admin','','paracel2026','SI','NO','Usuario administrador principal.'],
-    ['user','Visualizador','viewer','','123','SI','NO','Usuario de consulta y llenado de cuestionario.'],
-    ['diego','Diego Meza','admin','','456','SI','NO','Usuario administrador.'],
-    ['lati','Lati','admin','','789','SI','NO','Usuario administrador.']
-  ];
-  replaceSheetData_(APP_CFG.SHEETS.USERS, USER_HEADERS_, rows);
+  replaceSheetData_(APP_CFG.SHEETS.USERS, USER_HEADERS_, defaultUsers_());
   hashSeedUsers_();
 }
 
 function resetUsers() {
-  var rows = [
-    ['admin','Administrador','admin','','paracel2026','SI','NO','Usuario administrador principal.'],
-    ['user','Visualizador','viewer','','123','SI','NO','Usuario de consulta y llenado de cuestionario.'],
-    ['diego','Diego Meza','admin','','456','SI','NO','Usuario administrador.'],
-    ['lati','Lati','admin','','789','SI','NO','Usuario administrador.']
-  ];
-  replaceSheetData_(APP_CFG.SHEETS.USERS, USER_HEADERS_, rows);
+  replaceSheetData_(APP_CFG.SHEETS.USERS, USER_HEADERS_, defaultUsers_());
   hashSeedUsers_();
-  return { ok: true, users: rows.length };
+  return { ok: true, users: defaultUsers_().length };
 }
 
 function seedAll() {
