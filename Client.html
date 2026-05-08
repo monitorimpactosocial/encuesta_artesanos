@@ -23,6 +23,7 @@
     fieldMapError: null,
     fieldMapInstance: null,
     fieldMapSelected: {},
+    fieldMapFilterUser: '',
     responses: null,
     responsesError: null,
     adminUsers: null,
@@ -324,11 +325,14 @@
     const d=state.fieldMap, m=fieldMapMetrics_(d), s=d.assignmentSummary||{}, isAdmin=(d.currentUser&&d.currentUser.role)==='admin';
     if(!isAdmin && !(d.currentUser&&d.currentUser.slot)) return slotSelectionView_(d);
     const users=d.users||[];
+    const assignedUsers=[...new Set((d.dwellings||[]).map(p=>p.assigned_to).filter(Boolean))].sort();
+    const filterBox=isAdmin?'<div class="card"><h3>Filtrar por encuestador</h3><label>Encuestador<select class="control" id="fieldMapUserFilter"><option value="">Todos los puntos</option>'+assignedUsers.map(u=>'<option value="'+esc(u)+'" '+(state.fieldMapFilterUser===u?'selected':'')+'>'+esc(u)+'</option>').join('')+'</select></label><p class="small muted" style="margin-top:8px">El filtro afecta puntos, leyenda y rutas operativas visibles en el mapa.</p></div>':'';
     const adminBox=isAdmin?
       '<div class="card assign-panel"><h3>Asignar viviendas</h3><p class="small muted">Seleccione puntos en el mapa y asigne una tanda de trabajo. Los puntos visitados quedan bloqueados como evidencia.</p><label>Encuestador<select class="control" id="assignUser"><option value="">Seleccione...</option>'+users.map(u=>'<option value="'+esc(u.username)+'">'+esc(u.display_name)+' · '+esc(u.username)+'</option>').join('')+'</select></label><div class="grid cols-2" style="margin-top:10px"><label>Prioridad<select class="control" id="assignPriority"><option>normal</option><option>alta</option><option>baja</option></select></label><label>Orden inicial<input class="control" id="assignStart" type="number" min="1" value="1"></label></div><label style="margin-top:10px;display:block">Nota<input class="control" id="assignNotes" placeholder="Ej: iniciar por camino principal"></label><p class="pill" style="margin-top:10px"><span id="selectedCount">0</span> viviendas seleccionadas</p><div class="toolbar" style="margin-top:12px"><button class="btn" id="saveAssignments">Asignar seleccion</button><button class="btn secondary" id="clearAssignments">Liberar seleccion</button><button class="btn ghost" id="clearSelection">Limpiar seleccion</button></div></div>'+
       '<div class="card assign-panel"><h3>Auto-planificar operativo</h3><p class="small muted">Reparte viviendas pendientes entre usuarios genericos, ordena rutas por proximidad y estima tiempo por entrevista + traslado.</p><div class="grid cols-2"><label>Encuestadores<input class="control" id="planUsers" type="number" min="1" max="8" value="4"></label><label>Minutos por encuesta<input class="control" id="planMinutes" type="number" min="20" max="120" value="'+surveyTimeEstimate_()+'"></label><label>Velocidad km/h<input class="control" id="planTravelKmh" type="number" min="1" max="8" step="0.5" value="3.5"></label><label>Desde orden<input class="control" id="planStartOrder" type="number" min="1" value="1"></label></div><div id="planPreview" class="small muted" style="margin-top:10px">'+esc(planSummaryText_())+'</div><div class="toolbar" style="margin-top:12px"><button class="btn" id="autoPlanAssignments">Auto-planificar pendientes</button></div></div>':'';
     return '<div class="field-map-layout"><div class="field-map-main card"><div class="section-title"><div><h3>'+esc(d.name)+'</h3><p class="muted">Recorte operativo para planificar recorridos, viviendas y carga de encuesta.</p></div><span class="pill ok">'+esc(d.barloc)+' · '+esc(d.district)+'</span></div><div id="fieldMapBox" class="field-map-box"></div></div>'+
       '<div class="field-map-panel"><div class="card"><h3>Plan de cobertura</h3><div class="mini-kpis"><div><b>'+n(s.total||d.stats.viviendasIne)+'</b><span>viviendas mapeadas</span></div><div><b>'+n(s.mias||0)+'</b><span>asignadas a mi usuario</span></div><div><b>'+n(s.pendientesMias||0)+'</b><span>pendientes propias</span></div><div><b>'+n(s.visitadas||0)+'</b><span>visitadas con encuesta</span></div></div></div>'+
+      filterBox+
       '<div class="card"><h3>Lectura territorial</h3><div class="mini-kpis"><div><b>'+esc(m.areaKm2)+'</b><span>km² aprox. de polígono</span></div><div><b>'+esc(m.maxDistanceKm)+'</b><span>km entre extremos</span></div><div><b>'+esc(m.avgNearestM)+'</b><span>m al vecino más cercano</span></div><div><b>'+n(s.sinAsignar||0)+'</b><span>sin asignar</span></div></div></div>'+
       '<div class="card"><h3>Capas</h3><label class="check-item"><input type="checkbox" id="layerBoundary" checked> <span>Límite Isla Tuyu</span></label><label class="check-item"><input type="checkbox" id="layerDwellings" checked> <span>Viviendas existentes</span></label><label class="check-item"><input type="checkbox" id="layerRoutes" checked> <span>Rutas y caminos operativos</span></label><label class="check-item"><input type="checkbox" id="layerLabels" checked> <span>Números de vivienda</span></label><div class="field-legend">'+assignmentLegend_(d)+'</div><div class="toolbar" style="margin-top:12px"><button class="btn secondary" id="fitFieldMap">Centrar todo</button></div></div>'+
       (!isAdmin?routeSummaryHtml_(d):'')+adminBox+'<div class="card"><h3>Fuente y uso</h3><p class="small muted">Base: '+esc(d.source)+'. Los puntos son viviendas del marco INE; deben validarse en campo porque no sustituyen confirmación local, ocupación actual ni cantidad de personas.</p></div></div></div>';
@@ -346,6 +350,7 @@
   }
   function bindFieldMap_(){
     const retry=document.getElementById('retryFieldMap'); if(retry) retry.onclick=()=>{state.fieldMap=null;state.fieldMapError=null;loadFieldMap_();};
+    const filter=document.getElementById('fieldMapUserFilter'); if(filter) filter.onchange=()=>{state.fieldMapFilterUser=filter.value;state.fieldMapSelected={};render();};
     const claim=document.getElementById('claimSlotBtn'); if(claim) claim.onclick=claimSlot_;
     const recalc=document.getElementById('recalcRoute'); if(recalc) recalc.onclick=()=>{state.fieldMap=null;loadFieldMap_();};
     if(!state.fieldMap)return;
@@ -369,7 +374,7 @@
     const layers={};
     layers.boundary=L.polygon(d.boundary,{color:'#0f3d33',weight:3,fillColor:'#c8a24a',fillOpacity:.12}).addTo(map).bindPopup('Límite operativo: '+esc(d.name));
     layers.dwellings=L.layerGroup().addTo(map);
-    (d.dwellings||[]).filter(p=>p.visible!==false).forEach(p=>{
+    visibleFieldDwellings_(d).forEach(p=>{
       const strong=p.status==='visitada';
       const color=userColor_(p.assigned_to,strong);
       const label='<span class="dwelling-label" style="background:'+esc(color.bg)+';border-color:'+esc(color.border)+';color:'+esc(color.text)+'">'+p.n+'</span>';
@@ -384,7 +389,7 @@
       if(isAdmin) marker.on('click',()=>toggleDwellingSelection_(p.id));
     });
     layers.routes=L.layerGroup().addTo(map);
-    routeGroups_(d.dwellings||[]).forEach(g=>{
+    routeGroups_(visibleFieldDwellings_(d)).forEach(g=>{
       if(g.points.length<2)return;
       const c=userColor_(g.user,true).border;
       L.polyline(g.points.map(p=>[p.lat,p.lng]),{color:c,weight:4,opacity:.68,dashArray:g.visited?'':'6 7'}).bindPopup('Ruta/camino operativo: '+esc(g.user)+' · '+g.points.length+' viviendas').addTo(layers.routes);
@@ -398,6 +403,10 @@
     const cbRoutes=document.getElementById('layerRoutes'); if(cbRoutes) cbRoutes.onchange=()=>toggleMapLayer_(layers.routes,cbRoutes.checked);
     const cbLabels=document.getElementById('layerLabels'); if(cbLabels) cbLabels.onchange=()=>{el.classList.toggle('hide-dwelling-labels',!cbLabels.checked);};
     bindAssignmentControls_();
+  }
+  function visibleFieldDwellings_(d){
+    const filter=state.fieldMapFilterUser||'';
+    return (d.dwellings||[]).filter(p=>p.visible!==false && (!filter || p.assigned_to===filter));
   }
   function toggleMapLayer_(layer,on){
     const inst=state.fieldMapInstance; if(!inst)return;
@@ -442,7 +451,7 @@
     return 'rgba('+((n>>16)&255)+','+((n>>8)&255)+','+(n&255)+','+a+')';
   }
   function assignmentLegend_(d){
-    const users=[...new Set(((d.dwellings||[]).map(p=>p.assigned_to).filter(Boolean)))].slice(0,12);
+    const users=[...new Set((visibleFieldDwellings_(d).map(p=>p.assigned_to).filter(Boolean)))].slice(0,12);
     if(!users.length)return '<p class="small muted" style="margin-top:10px">Sin asignaciones todavía. El mapa base OSM muestra caminos; al asignar se dibujan rutas operativas por sector.</p>';
     return '<div class="legend-list">'+users.map(u=>{const c=userColor_(u,true);return '<span><i style="background:'+esc(c.border)+'"></i>'+esc(u)+'</span>';}).join('')+'<p class="small muted">Color tenue = asignado pendiente. Color fuerte = encuestado/cerrado. Línea = ruta o camino operativo del sector.</p></div>';
   }

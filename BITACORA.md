@@ -581,6 +581,17 @@ Despues de hacer login en la Web App, ir al panel Admin y ejecutar **"Sincroniza
 
 ### Liberacion ejecutada
 - `npx clasp push -f`: exitoso, 14 archivos subidos.
+- `npx clasp version "v24 - filtro mapa por encuestador"`: creada version 24.
+- `npx clasp deploy -i AKfycbwTpwf0GoONoPOEJnE-IxoDiYofcB54c_aQBoPlvaCrjYcJ_RNhdxqJC9dEClZH0Kk -V 24`: deployment publico actualizado.
+- `npx clasp deployments`: confirma `AKfycbwTpwf0GoONoPOEJnE-IxoDiYofcB54c_aQBoPlvaCrjYcJ_RNhdxqJC9dEClZH0Kk @24 - v24 - filtro mapa por encuestador`.
+- Verificacion HTTP de `/exec`: status `200`.
+
+### Estado operativo
+- Admin puede filtrar el mapa por cada encuestador asignado.
+- El filtro se aplica tambien a rutas y leyenda, no solo a los puntos.
+
+### Liberacion ejecutada
+- `npx clasp push -f`: exitoso, 14 archivos subidos.
 - `npx clasp version "v23 - ruta por usuario real y slots operativos"`: creada version 23.
 - `npx clasp deploy -i AKfycbwTpwf0GoONoPOEJnE-IxoDiYofcB54c_aQBoPlvaCrjYcJ_RNhdxqJC9dEClZH0Kk -V 23`: deployment publico actualizado.
 - `npx clasp deployments`: confirma `AKfycbwTpwf0GoONoPOEJnE-IxoDiYofcB54c_aQBoPlvaCrjYcJ_RNhdxqJC9dEClZH0Kk @23 - v23 - ruta por usuario real y slots operativos`.
@@ -590,6 +601,31 @@ Despues de hacer login en la Web App, ir al panel Admin y ejecutar **"Sincroniza
 - Publicado el flujo usuario real -> numero operativo -> mapa filtrado.
 - La app ya registra duracion real por encuesta en `duracion_min` y la usa para reestimar tiempos visibles en `Mi ruta y tiempos`.
 - Privilegios administrativos efectivos limitados a `diego.meza`, `noelia.mendoza` y `latiffi.chelala`.
+
+## 2026-05-08 - Filtro de mapa por encuestador
+
+### Pedido
+- En `Mapa territorial`, permitir filtrar los puntos visibles por cada encuestador.
+
+### Cambios aplicados
+- `Client.html`:
+  - Se agrego panel `Filtrar por encuestador` para usuarios admin.
+  - El selector incluye `Todos los puntos` y cada encuestador con viviendas asignadas.
+  - El filtro afecta:
+    - marcadores de viviendas,
+    - leyenda de colores,
+    - rutas/caminos operativos dibujados.
+  - Al cambiar filtro se limpia la seleccion activa para evitar asignaciones accidentales sobre puntos ocultos.
+
+### Validacion local
+- `Client.html`: script embebido validado con `node --check`.
+
+### Pendiente de liberacion
+1. `npx clasp push -f`.
+2. Crear nueva version GAS.
+3. Actualizar deployment publico.
+4. Verificar `/exec` HTTP 200.
+5. Commit/push Git.
 
 ### Liberacion ejecutada
 - `npx clasp push -f`: exitoso, 14 archivos subidos.
