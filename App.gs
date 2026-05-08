@@ -29,6 +29,8 @@ function doPost(e) {
     rebuildAnalytics: rebuildAnalytics,
     listUsers: listUsers,
     saveUser: saveUser,
+    getFieldMapData: getFieldMapData,
+    saveDwellingAssignments: saveDwellingAssignments,
     getSpreadsheetLinks: getSpreadsheetLinks,
     syncQuestionnaireMetadata: syncQuestionnaireMetadata,
     exportResponsesCsv: exportResponsesCsv

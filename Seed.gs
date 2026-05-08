@@ -5,6 +5,7 @@ var EDITION_HEADERS_ = ['edition_id','edition_name','status','start_date','end_d
 var CONFIG_HEADERS_ = ['clave','valor','descripcion'];
 var PHOTO_HEADERS_ = ['foto_id','source_uuid','field_name','file_id','file_url','filename','mime_type','size_bytes','uploaded_at','uploaded_by'];
 var AUDIT_HEADERS_ = ['event_ts','actor','role','action','entity','entity_id','payload_json'];
+var DWELLING_ASSIGNMENT_HEADERS_ = ['vivienda_id','vivienda_n','lat','lng','assigned_to','status','priority','route_order','notes','assigned_by','assigned_at','updated_at'];
 
 function q_(so, sid, slabel, qo, field, label, type, required, options, visibleIf, pii, analytic, help) {
   return {

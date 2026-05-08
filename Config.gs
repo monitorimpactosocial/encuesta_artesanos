@@ -20,7 +20,8 @@ var APP_CFG = {
     LONG: 'RESPUESTAS_LONG',
     AUDIT: 'AUDITORIA',
     PHOTOS: 'FOTOS',
-    DIRECTORY: 'DIRECTORIO_ARTESANOS'
+    DIRECTORY: 'DIRECTORIO_ARTESANOS',
+    DWELLING_ASSIGNMENTS: 'ASIGNACIONES_VIVIENDA'
   },
   PII_FIELDS: [
     'nombre_completo_raw','nombre_completo','cedula_raw','cedula','telefono','direccion_referencia',

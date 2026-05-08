@@ -19,6 +19,7 @@ function setupBackend(spreadsheetId, photosFolderId) {
   ensureHeaders_(APP_CFG.SHEETS.AUDIT, AUDIT_HEADERS_);
   ensureHeaders_(APP_CFG.SHEETS.PHOTOS, PHOTO_HEADERS_);
   ensureHeaders_(APP_CFG.SHEETS.DIRECTORY, ['respondente_id','nombre_completo','cedula','telefono','comunidad','tipo_artesania_principal','asociacion_nombre','ultima_actualizacion']);
+  ensureHeaders_(APP_CFG.SHEETS.DWELLING_ASSIGNMENTS, DWELLING_ASSIGNMENT_HEADERS_);
 
   seedAll();
   syncHeaders_(APP_CFG.SHEETS.RESPONSES, getResponseHeaders_());
@@ -37,6 +38,7 @@ function fixEverything() {
   ensureHeaders_(APP_CFG.SHEETS.CATALOGS, CATALOG_HEADERS_);
   ensureHeaders_(APP_CFG.SHEETS.AUDIT, AUDIT_HEADERS_);
   ensureHeaders_(APP_CFG.SHEETS.PHOTOS, PHOTO_HEADERS_);
+  ensureHeaders_(APP_CFG.SHEETS.DWELLING_ASSIGNMENTS, DWELLING_ASSIGNMENT_HEADERS_);
   syncHeaders_(APP_CFG.SHEETS.RESPONSES, getResponseHeaders_());
   hashSeedUsers_();
   rebuildAnalytics();
@@ -60,7 +62,9 @@ function getResponseHeaders_() {
     'start_ts','end_ts','submission_ts','duracion_min','modo_captura','encuestador_usuario',
     'gps_encuesta_lat','gps_encuesta_lng','gps_encuesta_accuracy','gps_encuesta_ts',
     'gps_taller_lat','gps_taller_lng','gps_taller_accuracy','gps_taller_ts',
-    'audio_url','audio_duration_sec'
+    'audio_url','audio_duration_sec',
+    'vivienda_mapeada_id','vivienda_mapeada_n','vivienda_mapeada_lat','vivienda_mapeada_lng',
+    'vivienda_asignada_a','vivienda_plan_estado'
   ];
   APP_CFG.PHOTO_FIELDS.forEach(function(f) {
     meta.push(f + '_id');

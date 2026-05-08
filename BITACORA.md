@@ -410,3 +410,65 @@ Despues de hacer login en la Web App, ir al panel Admin y ejecutar **"Sincroniza
 - La Web App publicada ya incluye la vista `Mapa territorial` para usuarios autenticados.
 - La vista parte de datos reales INE: 69 viviendas georreferenciadas y limite de barrio/localidad `ISLA TUYU`.
 - Pendiente de mejora futura: incorporar caminos/hidrografia como capas vectoriales propias, y cruzar con respuestas de encuesta para mostrar viviendas visitadas, pendientes y cantidad real de personas por hogar.
+
+## 2026-05-08 - Mapa como bandeja territorial: asignacion de viviendas a encuestadores
+
+### Idea implementada
+- Convertir la vista `Mapa territorial` en una bandeja operativa:
+  - El admin selecciona viviendas directamente en el mapa.
+  - Elige un encuestador, prioridad, orden inicial de ruta y nota.
+  - Guarda la tanda en una hoja operativa.
+  - Cada encuestador ve sus viviendas asignadas resaltadas al iniciar sesion.
+  - Desde el popup de una vivienda propia puede iniciar la encuesta ya vinculada a ese punto.
+  - Cuando se envia una encuesta con `vivienda_mapeada_id`, el mapa la marca como `visitada`.
+
+### Cambios de backend
+- `Config.gs`: agregado `APP_CFG.SHEETS.DWELLING_ASSIGNMENTS = ASIGNACIONES_VIVIENDA`.
+- `Seed.gs`: agregado `DWELLING_ASSIGNMENT_HEADERS_`.
+- `Setup.gs`: `setupBackend()` y `fixEverything()` aseguran la hoja `ASIGNACIONES_VIVIENDA`.
+- `Setup.gs`: `getResponseHeaders_()` agrega campos de trazabilidad territorial:
+  - `vivienda_mapeada_id`
+  - `vivienda_mapeada_n`
+  - `vivienda_mapeada_lat`
+  - `vivienda_mapeada_lng`
+  - `vivienda_asignada_a`
+  - `vivienda_plan_estado`
+- `MapData.gs`:
+  - `getFieldMapData(sessionToken)` ahora combina mapa + asignaciones + visitas registradas.
+  - `saveDwellingAssignments(sessionToken, assignments)` permite al admin asignar/liberar viviendas.
+  - Se agregan resumenes: total, visibles, asignadas, sin asignar, propias, pendientes propias y visitadas.
+- `Survey.gs`: `submitSurvey()` guarda los campos territoriales y marca `vivienda_plan_estado=visitada` cuando corresponde.
+- `App.gs`: funciones nuevas habilitadas tambien para el wrapper `doPost`.
+
+### Cambios de frontend
+- `Client.html`:
+  - Panel de asignacion visible solo para admin.
+  - Seleccion de viviendas por click en el mapa.
+  - Botones `Asignar seleccion`, `Liberar seleccion`, `Limpiar seleccion`.
+  - KPIs de cobertura: viviendas mapeadas, asignadas al usuario, pendientes propias y visitadas.
+  - Marcadores por estado: sin asignar, asignada, propia y visitada.
+  - Popup con encuestador asignado, orden de ruta, prioridad y boton `Iniciar encuesta aqui` para viviendas propias pendientes.
+  - Al iniciar encuesta desde el mapa, se cargan en borrador los campos de vivienda mapeada y localidad.
+- `Styles.html`: estilos de marcadores por estado y panel de asignacion.
+
+### Validacion local
+- `Client.html`, `MapData.gs`, `Config.gs`, `Seed.gs`, `Setup.gs`, `Survey.gs` y `App.gs` pasaron `node --check` por stdin.
+
+### Pendiente de liberacion
+1. `npx clasp push -f`.
+2. Crear nueva version GAS.
+3. Actualizar deployment publico.
+4. Verificar `/exec` HTTP 200 y registrar version.
+
+### Liberacion ejecutada
+- `npx clasp push -f`: exitoso, 14 archivos subidos.
+- `npx clasp version "v20 - asignar viviendas a encuestadores"`: creada version 20.
+- `npx clasp deploy -i AKfycbwTpwf0GoONoPOEJnE-IxoDiYofcB54c_aQBoPlvaCrjYcJ_RNhdxqJC9dEClZH0Kk -V 20`: deployment publico actualizado.
+- `npx clasp deployments`: confirma `AKfycbwTpwf0GoONoPOEJnE-IxoDiYofcB54c_aQBoPlvaCrjYcJ_RNhdxqJC9dEClZH0Kk @20 - v20 - asignar viviendas a encuestadores`.
+- Verificacion HTTP de `/exec`: status `200`.
+
+### Estado tras la liberacion
+- La Web App publicada ya permite administrar viviendas mapeadas y asignarlas a encuestadores desde `Mapa territorial`.
+- La hoja `ASIGNACIONES_VIVIENDA` se crea/asegura automaticamente al abrir el mapa o ejecutar setup/fix.
+- La trazabilidad territorial queda en `RESPUESTAS` mediante `vivienda_mapeada_id` y campos relacionados.
+- Pendiente de prueba funcional viva: entrar como admin, seleccionar 2-3 viviendas, asignarlas a `encuestador`, entrar con ese usuario y verificar que puede iniciar la encuesta desde el punto asignado.

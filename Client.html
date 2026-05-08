@@ -22,6 +22,7 @@
     fieldMap: null,
     fieldMapError: null,
     fieldMapInstance: null,
+    fieldMapSelected: {},
     responses: null,
     responsesError: null,
     filters: {},
@@ -309,7 +310,7 @@
     const photos=Object.keys(state.photos).map(f=>Object.assign({},state.photos[f],{fieldName:f}));
     const payload={source_uuid:state.sourceUuid,source_version:'artesanos-v1.0.0',start_ts:state.startTs,end_ts:new Date().toISOString(),values:normalizedValues_(),gps:state.gps,photos:photos};
     setLoading(true);
-    try{const res=await callServer('submitSurvey',payload,sessionToken()); state.tab='inicio'; clearDraft(); toast('success','Encuesta enviada. Estado de calidad: '+res.calidad_estado+'.');}
+    try{const res=await callServer('submitSurvey',payload,sessionToken()); state.fieldMap=null; state.dashboard=null; state.responses=null; state.tab='inicio'; clearDraft(); toast('success','Encuesta enviada. Estado de calidad: '+res.calidad_estado+'.');}
     catch(err){toast('error',err.message||String(err));}
     finally{setLoading(false);}
   }
@@ -317,11 +318,14 @@
   function fieldMapView_(){
     if(state.fieldMapError) return '<div class="card error"><h3>Error al cargar el mapa</h3><p>'+esc(state.fieldMapError)+'</p><div class="toolbar" style="margin-top:12px"><button class="btn" id="retryFieldMap">Reintentar</button></div></div>';
     if(!state.fieldMap) return '<div class="card"><span class="loader"></span> Cargando mapa territorial...</div>';
-    const d=state.fieldMap, m=fieldMapMetrics_(d);
+    const d=state.fieldMap, m=fieldMapMetrics_(d), s=d.assignmentSummary||{}, isAdmin=(d.currentUser&&d.currentUser.role)==='admin';
+    const users=d.users||[];
+    const adminBox=isAdmin?'<div class="card assign-panel"><h3>Asignar viviendas</h3><p class="small muted">Seleccione puntos en el mapa y asigne una tanda de trabajo. Los puntos visitados quedan bloqueados como evidencia.</p><label>Encuestador<select class="control" id="assignUser"><option value="">Seleccione...</option>'+users.map(u=>'<option value="'+esc(u.username)+'">'+esc(u.display_name)+' · '+esc(u.username)+'</option>').join('')+'</select></label><div class="grid cols-2" style="margin-top:10px"><label>Prioridad<select class="control" id="assignPriority"><option>normal</option><option>alta</option><option>baja</option></select></label><label>Orden inicial<input class="control" id="assignStart" type="number" min="1" value="1"></label></div><label style="margin-top:10px;display:block">Nota<input class="control" id="assignNotes" placeholder="Ej: iniciar por camino principal"></label><p class="pill" style="margin-top:10px"><span id="selectedCount">0</span> viviendas seleccionadas</p><div class="toolbar" style="margin-top:12px"><button class="btn" id="saveAssignments">Asignar selección</button><button class="btn secondary" id="clearAssignments">Liberar selección</button><button class="btn ghost" id="clearSelection">Limpiar selección</button></div></div>':'';
     return '<div class="field-map-layout"><div class="field-map-main card"><div class="section-title"><div><h3>'+esc(d.name)+'</h3><p class="muted">Recorte operativo para planificar recorridos, viviendas y carga de encuesta.</p></div><span class="pill ok">'+esc(d.barloc)+' · '+esc(d.district)+'</span></div><div id="fieldMapBox" class="field-map-box"></div></div>'+
-      '<div class="field-map-panel"><div class="card"><h3>Lectura rápida</h3><div class="mini-kpis"><div><b>'+n(d.stats.viviendasIne)+'</b><span>viviendas INE georreferenciadas</span></div><div><b>'+esc(m.areaKm2)+'</b><span>km² aprox. de polígono</span></div><div><b>'+esc(m.maxDistanceKm)+'</b><span>km entre extremos de viviendas</span></div><div><b>'+esc(m.avgNearestM)+'</b><span>m promedio al vecino más cercano</span></div></div></div>'+
+      '<div class="field-map-panel"><div class="card"><h3>Plan de cobertura</h3><div class="mini-kpis"><div><b>'+n(s.total||d.stats.viviendasIne)+'</b><span>viviendas mapeadas</span></div><div><b>'+n(s.mias||0)+'</b><span>asignadas a mi usuario</span></div><div><b>'+n(s.pendientesMias||0)+'</b><span>pendientes propias</span></div><div><b>'+n(s.visitadas||0)+'</b><span>visitadas con encuesta</span></div></div></div>'+
+      '<div class="card"><h3>Lectura territorial</h3><div class="mini-kpis"><div><b>'+esc(m.areaKm2)+'</b><span>km² aprox. de polígono</span></div><div><b>'+esc(m.maxDistanceKm)+'</b><span>km entre extremos</span></div><div><b>'+esc(m.avgNearestM)+'</b><span>m al vecino más cercano</span></div><div><b>'+n(s.sinAsignar||0)+'</b><span>sin asignar</span></div></div></div>'+
       '<div class="card"><h3>Capas</h3><label class="check-item"><input type="checkbox" id="layerBoundary" checked> <span>Límite Isla Tuyu</span></label><label class="check-item"><input type="checkbox" id="layerDwellings" checked> <span>Viviendas existentes</span></label><label class="check-item"><input type="checkbox" id="layerLabels" checked> <span>Números de vivienda</span></label><div class="toolbar" style="margin-top:12px"><button class="btn secondary" id="fitFieldMap">Centrar todo</button></div></div>'+
-      '<div class="card"><h3>Fuente y uso</h3><p class="small muted">Base: '+esc(d.source)+'. Los puntos son viviendas del marco INE; deben validarse en campo porque no sustituyen confirmación local, ocupación actual ni cantidad de personas.</p></div></div></div>';
+      adminBox+'<div class="card"><h3>Fuente y uso</h3><p class="small muted">Base: '+esc(d.source)+'. Los puntos son viviendas del marco INE; deben validarse en campo porque no sustituyen confirmación local, ocupación actual ni cantidad de personas.</p></div></div></div>';
   }
   async function loadFieldMap_(){
     if(!state.session)return;
@@ -339,15 +343,23 @@
     const el=document.getElementById('fieldMapBox'); if(!el || !state.fieldMap || typeof L==='undefined')return;
     if(state.fieldMapInstance){ try{state.fieldMapInstance.remove();}catch(e){} state.fieldMapInstance=null; }
     const d=state.fieldMap;
+    const isAdmin=(d.currentUser&&d.currentUser.role)==='admin';
     const map=L.map(el,{scrollWheelZoom:true}).setView(d.center,14);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(map);
     const layers={};
     layers.boundary=L.polygon(d.boundary,{color:'#0f3d33',weight:3,fillColor:'#c8a24a',fillOpacity:.12}).addTo(map).bindPopup('Límite operativo: '+esc(d.name));
     layers.dwellings=L.layerGroup().addTo(map);
-    (d.dwellings||[]).forEach(p=>{
+    (d.dwellings||[]).filter(p=>p.visible!==false).forEach(p=>{
       const label='<span class="dwelling-label">'+p.n+'</span>';
-      const icon=L.divIcon({className:'dwelling-marker',html:label,iconSize:[24,24],iconAnchor:[12,12]});
-      L.marker([p.lat,p.lng],{icon:icon}).bindPopup('<b>Vivienda '+p.n+'</b><br>INE fid: '+esc(p.id)+'<br>'+p.lat.toFixed(6)+', '+p.lng.toFixed(6)).addTo(layers.dwellings);
+      const cls='dwelling-marker status-'+(p.status||'sin_asignar')+(p.assigned_to===(d.currentUser&&d.currentUser.username)?' mine':'')+(state.fieldMapSelected[p.id]?' selected':'');
+      const icon=L.divIcon({className:cls,html:label,iconSize:[26,26],iconAnchor:[13,13]});
+      const mine=p.assigned_to===(d.currentUser&&d.currentUser.username);
+      const action=(mine&&p.status!=='visitada')?'<br><button class="btn" style="margin-top:8px" onclick="startSurveyForDwelling_(&quot;'+esc(p.id)+'&quot;)">Iniciar encuesta aquí</button>':'';
+      const adminHint=isAdmin?'<br><span class="small muted">Click en el punto para seleccionar.</span>':'';
+      const assigned=p.assigned_to?'<br>Asignada a: <b>'+esc(p.assigned_to)+'</b>'+(p.route_order?'<br>Orden de ruta: '+esc(p.route_order):'')+(p.priority?'<br>Prioridad: '+esc(p.priority):''):'<br>Sin asignar';
+      const visited=p.status==='visitada'?'<br><b>Visitada</b> · '+esc(p.visited_at||''):'';
+      const marker=L.marker([p.lat,p.lng],{icon:icon}).bindPopup('<b>Vivienda '+p.n+'</b><br>INE fid: '+esc(p.id)+assigned+visited+'<br>'+p.lat.toFixed(6)+', '+p.lng.toFixed(6)+action+adminHint).addTo(layers.dwellings);
+      if(isAdmin) marker.on('click',()=>toggleDwellingSelection_(p.id));
     });
     const bounds=L.latLngBounds(d.bounds);
     map.fitBounds(bounds,{padding:[18,18]});
@@ -356,6 +368,7 @@
     const cbBoundary=document.getElementById('layerBoundary'); if(cbBoundary) cbBoundary.onchange=()=>toggleMapLayer_(layers.boundary,cbBoundary.checked);
     const cbDwellings=document.getElementById('layerDwellings'); if(cbDwellings) cbDwellings.onchange=()=>toggleMapLayer_(layers.dwellings,cbDwellings.checked);
     const cbLabels=document.getElementById('layerLabels'); if(cbLabels) cbLabels.onchange=()=>{el.classList.toggle('hide-dwelling-labels',!cbLabels.checked);};
+    bindAssignmentControls_();
   }
   function toggleMapLayer_(layer,on){
     const inst=state.fieldMapInstance; if(!inst)return;
@@ -388,6 +401,53 @@
     let sum=0; for(let i=0;i<xy.length;i++){const a=xy[i],b=xy[(i+1)%xy.length]; sum+=a[0]*b[1]-b[0]*a[1];}
     return Math.abs(sum)/2;
   }
+  function toggleDwellingSelection_(id){
+    if(state.fieldMapSelected[id]) delete state.fieldMapSelected[id]; else state.fieldMapSelected[id]=true;
+    updateSelectionCount_();
+    setTimeout(initFieldMap_, 10);
+  }
+  function updateSelectionCount_(){
+    const el=document.getElementById('selectedCount'); if(el) el.textContent=Object.keys(state.fieldMapSelected||{}).length;
+  }
+  function bindAssignmentControls_(){
+    updateSelectionCount_();
+    const clearSel=document.getElementById('clearSelection'); if(clearSel) clearSel.onclick=()=>{state.fieldMapSelected={};initFieldMap_();};
+    const save=document.getElementById('saveAssignments'); if(save) save.onclick=()=>saveSelectedAssignments_(false);
+    const clear=document.getElementById('clearAssignments'); if(clear) clear.onclick=()=>saveSelectedAssignments_(true);
+  }
+  async function saveSelectedAssignments_(release){
+    const ids=Object.keys(state.fieldMapSelected||{});
+    if(!ids.length){toast('error','Seleccione al menos una vivienda en el mapa.');return;}
+    const user=document.getElementById('assignUser')?document.getElementById('assignUser').value:'';
+    if(!release && !user){toast('error','Seleccione un encuestador.');return;}
+    const start=Number(document.getElementById('assignStart')?document.getElementById('assignStart').value:1)||1;
+    const priority=document.getElementById('assignPriority')?document.getElementById('assignPriority').value:'normal';
+    const notes=document.getElementById('assignNotes')?document.getElementById('assignNotes').value:'';
+    const changes=ids.map((id,i)=>({vivienda_id:id,assigned_to:release?'':user,priority:priority,route_order:release?'':String(start+i),notes:notes,status:release?'sin_asignar':'asignada'}));
+    setLoading(true);
+    try{
+      const r=await callServer('saveDwellingAssignments',sessionToken(),changes);
+      toast('success',(release?'Liberadas ':'Asignadas ')+r.saved+' viviendas.');
+      state.fieldMapSelected={}; state.fieldMap=null; await loadFieldMap_();
+    }catch(e){toast('error',e.message||String(e));}
+    finally{setLoading(false);}
+  }
+  function startSurveyForDwelling_(id){
+    const p=(state.fieldMap&&state.fieldMap.dwellings||[]).find(x=>String(x.id)===String(id));
+    if(!p)return;
+    state.values.vivienda_mapeada_id=String(p.id);
+    state.values.vivienda_mapeada_n=String(p.n);
+    state.values.vivienda_mapeada_lat=String(p.lat);
+    state.values.vivienda_mapeada_lng=String(p.lng);
+    state.values.vivienda_asignada_a=p.assigned_to||((state.fieldMap.currentUser||{}).username||'');
+    if(!state.values.comunidad) state.values.comunidad='Isla Hermosa';
+    if(!state.values.barrio_localidad) state.values.barrio_localidad='Isla Tuyu';
+    saveDraft();
+    state.tab='formulario';
+    toast('success','Encuesta vinculada a vivienda '+p.n+'.');
+    render();
+  }
+  window.startSurveyForDwelling_ = startSurveyForDwelling_;
 
   function dashboardView_(){
     if(state.dashboardError) return '<div class="card error"><h3>Error al cargar el dashboard</h3><p>'+esc(state.dashboardError)+'</p><div class="toolbar" style="margin-top:12px"><button class="btn" id="retryDash">Reintentar</button></div></div>';

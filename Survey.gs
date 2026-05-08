@@ -155,6 +155,12 @@ function submitSurvey(payload, sessionToken) {
     }
     row.audio_url = audioUrl;
     row.audio_duration_sec = audioDurationSec;
+    row.vivienda_mapeada_id = normalizeText_(values.vivienda_mapeada_id);
+    row.vivienda_mapeada_n = normalizeText_(values.vivienda_mapeada_n);
+    row.vivienda_mapeada_lat = normalizeText_(values.vivienda_mapeada_lat);
+    row.vivienda_mapeada_lng = normalizeText_(values.vivienda_mapeada_lng);
+    row.vivienda_asignada_a = normalizeText_(values.vivienda_asignada_a) || (session ? session.username : '');
+    row.vivienda_plan_estado = row.vivienda_mapeada_id ? 'visitada' : '';
 
     var cleaned = cleanAndDerive_(row);
     Object.keys(cleaned).forEach(function(k) { row[k] = cleaned[k]; });
