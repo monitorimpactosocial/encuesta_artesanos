@@ -24,6 +24,9 @@
     fieldMapInstance: null,
     fieldMapSelected: {},
     fieldMapFilterUser: '',
+    fieldMapScenarioSurveyors: '',
+    fieldMapScenarioHoursDay: 6,
+    fieldMapScenarioMinutes: '',
     responses: null,
     responsesError: null,
     adminUsers: null,
@@ -789,6 +792,53 @@
     const reload=document.getElementById('reloadUsers'); if(reload) reload.onclick=()=>{state.adminUsers=null;loadAdminUsers_();};
     const save=document.getElementById('saveNewUser'); if(save) save.onclick=saveNewUser_;
     if(state.session&&state.session.role==='admin'&&!state.adminUsers&&!state.adminUsersError) loadAdminUsers_();
+  };
+
+  function timeText_(minutes, hoursDay){
+    minutes=Math.max(0,Number(minutes)||0); hoursDay=Math.max(1,Number(hoursDay)||6);
+    const h=minutes/60, d=h/hoursDay;
+    return Math.round(minutes)+' min · '+h.toFixed(1)+' h · '+d.toFixed(1)+' dias';
+  }
+  operationalTimeSummaryHtml_ = function(d,isAdmin){
+    const baseGroups=routeGroups_(isAdmin?(d.dwellings||[]).filter(p=>p.visible!==false):visibleFieldDwellings_(d));
+    const fallback=Number(state.fieldMapScenarioMinutes||surveyTimeEstimate_());
+    const rows=baseGroups.map(g=>timeStatsForGroup_(g.user,g.points,fallback));
+    const realDurations=rows.flatMap(r=>r.realDurations);
+    const realMean=realDurations.length?Math.round(realDurations.reduce((a,b)=>a+b,0)/realDurations.length):fallback;
+    const mean=Number(state.fieldMapScenarioMinutes||realMean);
+    const assigned=rows.reduce((s,r)=>s+r.assigned,0);
+    const pending=rows.reduce((s,r)=>s+r.pending,0);
+    const totalMin=rows.reduce((s,r)=>s+r.totalMin,0);
+    const activeSurveyors=rows.filter(r=>r.assigned>0).length||1;
+    const scenarioSurveyors=Math.max(1,Number(state.fieldMapScenarioSurveyors||activeSurveyors));
+    const hoursDay=Math.max(1,Number(state.fieldMapScenarioHoursDay||6));
+    const parallelMin=rows.length?Math.max(...rows.map(r=>r.totalMin)):0;
+    const scenarioMin=assigned?totalMin/scenarioSurveyors:0;
+    const body=rows.length?rows.map(r=>'<tr><td><b>'+esc(r.user)+'</b></td><td>'+n(r.assigned)+'</td><td>'+n(r.pending)+'</td><td>'+timeText_(r.meanMin,hoursDay)+'</td><td>'+r.distanceKm.toFixed(2)+' km</td><td>'+timeText_(r.totalMin,hoursDay)+'</td></tr>').join(''):'<tr><td colspan="6">Sin viviendas asignadas para estimar.</td></tr>';
+    const title=isAdmin?'Tiempos y escenarios del operativo':'Mi ruta y tiempos';
+    const scenarioBox=isAdmin?'<div class="grid cols-3" style="margin-top:12px"><label>Encuestadores simulados<input class="control" id="scenarioSurveyors" type="number" min="1" max="20" value="'+esc(scenarioSurveyors)+'"></label><label>Horas de trabajo/dia<input class="control" id="scenarioHoursDay" type="number" min="1" max="12" step="0.5" value="'+esc(hoursDay)+'"></label><label>Minutos por vivienda<input class="control" id="scenarioMinutes" type="number" min="10" max="180" value="'+esc(mean)+'"></label></div>':'';
+    return '<div class="card"><h3>'+title+'</h3>'+scenarioBox+'<div class="mini-kpis" style="margin-top:12px"><div><b>'+n(mean)+'</b><span>min promedio por vivienda</span></div><div><b>'+n(pending)+'</b><span>viviendas pendientes</span></div><div><b>'+timeText_(totalMin,hoursDay)+'</b><span>total acumulado</span></div><div><b>'+timeText_(parallelMin,hoursDay)+'</b><span>con asignacion actual en paralelo</span></div></div><div class="mini-kpis" style="margin-top:10px"><div><b>'+timeText_(scenarioMin,hoursDay)+'</b><span>escenario simulado</span></div><div><b>'+n(realDurations.length)+'</b><span>encuestas reales usadas</span></div></div><div class="toolbar" style="margin-top:12px"><button class="btn secondary" id="recalcRoute">Recalcular tiempos</button></div><div class="table-wrap" style="margin-top:12px"><table><thead><tr><th>Encuestador</th><th>Viviendas</th><th>Pendientes</th><th>Media</th><th>Ruta</th><th>Total estimado</th></tr></thead><tbody>'+body+'</tbody></table></div><p class="small muted">Los escenarios no cambian asignaciones. Permiten ensayar mas/menos encuestadores, horas de trabajo por dia y minutos promedio por vivienda.</p></div>';
+  };
+  fieldMapView_ = function(){
+    if(state.fieldMapError) return '<div class="card error"><h3>Error al cargar el mapa</h3><p>'+esc(state.fieldMapError)+'</p><div class="toolbar" style="margin-top:12px"><button class="btn" id="retryFieldMap">Reintentar</button></div></div>';
+    if(!state.fieldMap) return '<div class="card"><span class="loader"></span> Cargando mapa territorial...</div>';
+    const d=state.fieldMap, m=fieldMapMetrics_(d), s=d.assignmentSummary||{}, isAdmin=(d.currentUser&&d.currentUser.role)==='admin';
+    if(!isAdmin && !(d.currentUser&&d.currentUser.slot)) return slotSelectionView_(d);
+    const users=d.users||[];
+    const assignedUsers=[...new Set((d.dwellings||[]).map(p=>p.assigned_to).filter(Boolean))].sort();
+    const filterBox=isAdmin?'<div class="card"><h3>Filtrar por encuestador</h3><label>Encuestador<select class="control" id="fieldMapUserFilter"><option value="">Todos los puntos</option>'+assignedUsers.map(u=>'<option value="'+esc(u)+'" '+(state.fieldMapFilterUser===u?'selected':'')+'>'+esc(u)+'</option>').join('')+'</select></label></div>':'';
+    const planBox=isAdmin?'<div class="card assign-panel"><h3>Auto-planificar operativo</h3><p class="small muted">Distribuye viviendas pendientes por clusters y estima traslado + entrevista.</p><div class="grid cols-2"><label>Encuestadores<input class="control" id="planUsers" type="number" min="1" max="8" value="4"></label><label>Minutos por encuesta<input class="control" id="planMinutes" type="number" min="20" max="120" value="'+surveyTimeEstimate_()+'"></label><label>Velocidad km/h<input class="control" id="planTravelKmh" type="number" min="1" max="8" step="0.5" value="3.5"></label><label>Desde orden<input class="control" id="planStartOrder" type="number" min="1" value="1"></label></div><div id="planPreview" class="small muted" style="margin-top:10px">'+esc(planSummaryText_())+'</div><div class="toolbar" style="margin-top:12px"><button class="btn" id="autoPlanAssignments">Auto-planificar pendientes</button></div></div>':'';
+    const assignBox=isAdmin?'<div class="card assign-panel"><h3>Asignar viviendas</h3><p class="small muted">Seleccione puntos en el mapa y asigne una tanda manual.</p><label>Encuestador<select class="control" id="assignUser"><option value="">Seleccione...</option>'+users.map(u=>'<option value="'+esc(u.username)+'">'+esc(u.display_name)+' · '+esc(u.username)+'</option>').join('')+'</select></label><div class="grid cols-2" style="margin-top:10px"><label>Prioridad<select class="control" id="assignPriority"><option>normal</option><option>alta</option><option>baja</option></select></label><label>Orden inicial<input class="control" id="assignStart" type="number" min="1" value="1"></label></div><label style="margin-top:10px;display:block">Nota<input class="control" id="assignNotes" placeholder="Ej: iniciar por camino principal"></label><p class="pill" style="margin-top:10px"><span id="selectedCount">0</span> viviendas seleccionadas</p><div class="toolbar" style="margin-top:12px"><button class="btn" id="saveAssignments">Asignar seleccion</button><button class="btn secondary" id="clearAssignments">Liberar seleccion</button><button class="btn ghost" id="clearSelection">Limpiar seleccion</button></div></div>':'';
+    return '<div class="field-map-layout"><div class="field-map-main card"><div class="section-title"><div><h3>'+esc(d.name)+'</h3><p class="muted">Mapa operativo para asignacion, rutas y control de avance.</p></div><span class="pill ok">'+esc(d.barloc)+' · '+esc(d.district)+'</span></div><div id="fieldMapBox" class="field-map-box"></div></div><div class="field-map-panel">'+filterBox+operationalTimeSummaryHtml_(d,isAdmin)+'<div class="card"><h3>Plan de cobertura</h3><div class="mini-kpis"><div><b>'+n(s.total||d.stats.viviendasIne)+'</b><span>viviendas mapeadas</span></div><div><b>'+n(s.mias||0)+'</b><span>asignadas a mi usuario</span></div><div><b>'+n(s.pendientesMias||0)+'</b><span>pendientes propias</span></div><div><b>'+n(s.visitadas||0)+'</b><span>visitadas con encuesta</span></div></div></div>'+planBox+assignBox+'<div class="card"><h3>Capas</h3><label class="check-item"><input type="checkbox" id="layerBoundary" checked> <span>Limite Isla Tuyu</span></label><label class="check-item"><input type="checkbox" id="layerDwellings" checked> <span>Viviendas existentes</span></label><label class="check-item"><input type="checkbox" id="layerRoutes" checked> <span>Rutas y caminos operativos</span></label><label class="check-item"><input type="checkbox" id="layerLabels" checked> <span>Numeros de vivienda</span></label><div class="field-legend">'+assignmentLegend_(d)+'</div><div class="toolbar" style="margin-top:12px"><button class="btn secondary" id="fitFieldMap">Centrar todo</button></div></div><div class="card"><h3>Lectura territorial</h3><div class="mini-kpis"><div><b>'+esc(m.areaKm2)+'</b><span>km2 aprox. de poligono</span></div><div><b>'+esc(m.maxDistanceKm)+'</b><span>km entre extremos</span></div><div><b>'+esc(m.avgNearestM)+'</b><span>m al vecino mas cercano</span></div><div><b>'+n(s.sinAsignar||0)+'</b><span>sin asignar</span></div></div></div><div class="card"><h3>Fuente y uso</h3><p class="small muted">Base: '+esc(d.source)+'. Los puntos son viviendas del marco INE y deben validarse en campo.</p></div></div></div>';
+  };
+  bindFieldMap_ = function(){
+    const retry=document.getElementById('retryFieldMap'); if(retry) retry.onclick=()=>{state.fieldMap=null;state.fieldMapError=null;loadFieldMap_();};
+    const filter=document.getElementById('fieldMapUserFilter'); if(filter) filter.onchange=()=>{state.fieldMapFilterUser=filter.value;state.fieldMapSelected={};render();};
+    ['scenarioSurveyors','scenarioHoursDay','scenarioMinutes'].forEach(id=>{const el=document.getElementById(id); if(el) el.oninput=()=>{state.fieldMapScenarioSurveyors=document.getElementById('scenarioSurveyors')?.value||'';state.fieldMapScenarioHoursDay=document.getElementById('scenarioHoursDay')?.value||6;state.fieldMapScenarioMinutes=document.getElementById('scenarioMinutes')?.value||'';render();};});
+    const claim=document.getElementById('claimSlotBtn'); if(claim) claim.onclick=claimSlot_;
+    const recalc=document.getElementById('recalcRoute'); if(recalc) recalc.onclick=()=>{state.fieldMap=null;loadFieldMap_();};
+    if(!state.fieldMap)return;
+    setTimeout(initFieldMap_, 40);
   };
 
   document.addEventListener('DOMContentLoaded', init);

@@ -581,6 +581,18 @@ Despues de hacer login en la Web App, ir al panel Admin y ejecutar **"Sincroniza
 
 ### Liberacion ejecutada
 - `npx clasp push -f`: exitoso, 14 archivos subidos.
+- `npx clasp version "v26 - ordenar mapa y simular tiempos"`: creada version 26.
+- `npx clasp deploy -i AKfycbwTpwf0GoONoPOEJnE-IxoDiYofcB54c_aQBoPlvaCrjYcJ_RNhdxqJC9dEClZH0Kk -V 26`: deployment publico actualizado.
+- `npx clasp deployments`: confirma `AKfycbwTpwf0GoONoPOEJnE-IxoDiYofcB54c_aQBoPlvaCrjYcJ_RNhdxqJC9dEClZH0Kk @26 - v26 - ordenar mapa y simular tiempos`.
+- Verificacion HTTP de `/exec`: status `200`.
+
+### Estado operativo
+- La vista `Mapa territorial` queda reordenada con el mapa como superficie principal y el panel lateral como flujo de decision.
+- El panel de tiempos muestra minutos, horas y dias.
+- Se pueden ensayar escenarios modificando encuestadores, horas de trabajo por dia y minutos por vivienda.
+
+### Liberacion ejecutada
+- `npx clasp push -f`: exitoso, 14 archivos subidos.
 - `npx clasp version "v25 - tiempos estimados por encuestador"`: creada version 25.
 - `npx clasp deploy -i AKfycbwTpwf0GoONoPOEJnE-IxoDiYofcB54c_aQBoPlvaCrjYcJ_RNhdxqJC9dEClZH0Kk -V 25`: deployment publico actualizado.
 - `npx clasp deployments`: confirma `AKfycbwTpwf0GoONoPOEJnE-IxoDiYofcB54c_aQBoPlvaCrjYcJ_RNhdxqJC9dEClZH0Kk @25 - v25 - tiempos estimados por encuestador`.
@@ -589,6 +601,49 @@ Despues de hacer login en la Web App, ir al panel Admin y ejecutar **"Sincroniza
 ### Estado operativo
 - El mapa territorial ya muestra tiempos estimados globales e individuales por encuestador.
 - La reestimacion usa duraciones reales de encuestas cerradas y se actualiza con `Recalcular tiempos`.
+
+## 2026-05-08 - Reordenamiento de Mapa territorial y simulador de tiempos
+
+### Problema reportado
+- La vista `Mapa territorial` tenia los elementos desordenados y mezclaba lectura, filtros, tiempos, capas y asignacion sin una jerarquia clara.
+- Las estimaciones de tiempo debian verse en minutos, horas y dias.
+- Se pidio ensayar alternativas aumentando o disminuyendo encuestadores y tiempos de trabajo.
+
+### Cambios aplicados
+- `Client.html`:
+  - Se reordeno el panel lateral del mapa:
+    1. Filtro por encuestador.
+    2. Tiempos y escenarios del operativo.
+    3. Plan de cobertura.
+    4. Auto-planificacion.
+    5. Asignacion manual.
+    6. Capas.
+    7. Lectura territorial.
+    8. Fuente y uso.
+  - Se agrego funcion `timeText_()` para mostrar todo tiempo como:
+    - minutos,
+    - horas,
+    - dias segun horas de trabajo por dia.
+  - Se agrego simulador en `Tiempos y escenarios del operativo`:
+    - encuestadores simulados,
+    - horas de trabajo por dia,
+    - minutos por vivienda.
+  - El escenario simulado no modifica asignaciones; solo permite evaluar alternativas operativas.
+  - Se mantiene el recalculo con duraciones reales via `Recalcular tiempos`.
+- `Styles.html`:
+  - Panel lateral del mapa con separacion consistente entre tarjetas.
+  - Mapa principal queda fijo mientras se recorre el panel.
+  - Ancho del panel ajustado para que tablas y escenarios respiren mejor.
+
+### Validacion local
+- `Client.html`: script embebido validado con `node --check`.
+
+### Pendiente de liberacion
+1. `npx clasp push -f`.
+2. Crear nueva version GAS.
+3. Actualizar deployment publico.
+4. Verificar `/exec` HTTP 200.
+5. Commit/push Git.
 
 ### Liberacion ejecutada
 - `npx clasp push -f`: exitoso, 14 archivos subidos.
