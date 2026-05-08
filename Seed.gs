@@ -1,6 +1,7 @@
 var QUESTIONNAIRE_HEADERS_ = ['section_order','section_id','section_label','question_order','field_name','label','input_type','required','options_json','visible_if','contains_pii','include_in_analytics','help_text'];
 var CATALOG_HEADERS_ = ['catalogo','codigo','etiqueta','orden'];
 var USER_HEADERS_ = ['username','display_name','role','password_hash','password_temporal','active','must_change_password','notes'];
+var ENUMERATOR_SLOT_HEADERS_ = ['username','slot','active','assigned_at','updated_at'];
 var EDITION_HEADERS_ = ['edition_id','edition_name','status','start_date','end_date','notes'];
 var CONFIG_HEADERS_ = ['clave','valor','descripcion'];
 var PHOTO_HEADERS_ = ['foto_id','source_uuid','field_name','file_id','file_url','filename','mime_type','size_bytes','uploaded_at','uploaded_by'];
@@ -284,7 +285,9 @@ function seedConfig_() {
 function defaultUsers_() {
   return [
     ['diego.meza',  'Diego Meza',       'admin',  '', '123456', 'SI', 'NO', 'Administrador Paracel.'],
-    ['lati',        'Lati',             'admin',  '', '123456', 'SI', 'NO', 'Administrador Paracel.'],
+    ['noelia.mendoza','Noelia Mendoza', 'admin',  '', '123456', 'SI', 'SI', 'Administradora autorizada.'],
+    ['latiffi.chelala','Latiffi Chelala','admin',  '', '123456', 'SI', 'SI', 'Administradora autorizada.'],
+    ['lati',        'Lati',             'viewer', '', '123456', 'SI', 'NO', 'Alias legado sin privilegios admin.'],
     ['encuestador', 'Encuestador',      'editor', '', '123456', 'SI', 'NO', 'Encuestador de campo.'],
     ['encuestador1','Encuestador/a 1',  'editor', '', '123456', 'SI', 'SI', 'Usuario generico reasignable para operativo territorial.'],
     ['encuestador2','Encuestador/a 2',  'editor', '', '123456', 'SI', 'SI', 'Usuario generico reasignable para operativo territorial.'],

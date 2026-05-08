@@ -1,17 +1,21 @@
 function getFieldMapData(sessionToken) {
   var actor = requireRole_(sessionToken, ['admin','editor','viewer']);
   ensureHeaders_(APP_CFG.SHEETS.DWELLING_ASSIGNMENTS, DWELLING_ASSIGNMENT_HEADERS_);
+  ensureHeaders_(APP_CFG.SHEETS.ENUMERATOR_SLOTS, ENUMERATOR_SLOT_HEADERS_);
   var data = JSON.parse(JSON.stringify(FIELD_MAP_DATA_));
   var assignments = dwellingAssignmentMap_();
   var visits = dwellingVisitMap_();
   var isAdmin = actor.role === 'admin';
+  var activeSlot = activeEnumeratorSlot_(actor.username);
+  var effectiveNames = [actor.username];
+  if (activeSlot) effectiveNames.push(activeSlot);
   data.dwellings = data.dwellings.map(function(p) {
     var id = normalizeText_(p.id);
     var a = assignments[id] || {};
     var v = visits[id] || null;
     var assignedTo = normalizeText_(a.assigned_to);
     var status = v ? 'visitada' : (normalizeText_(a.status) || (assignedTo ? 'asignada' : 'sin_asignar'));
-    var visible = isAdmin || assignedTo === actor.username || !assignedTo;
+    var visible = isAdmin || effectiveNames.indexOf(assignedTo) >= 0;
     return {
       id: p.id,
       n: p.n,
@@ -26,14 +30,46 @@ function getFieldMapData(sessionToken) {
       updated_at: clientValue_(a.updated_at),
       visited_source_uuid: v ? v.source_uuid : '',
       visited_at: v ? v.submission_ts : '',
+      real_duration_min: v ? v.duration_min : '',
       visible: visible
     };
   });
-  data.assignmentSummary = assignmentSummary_(data.dwellings, actor);
+  data.assignmentSummary = assignmentSummary_(data.dwellings, actor, effectiveNames);
   data.users = isAdmin ? fieldMapAssignableUsers_() : [];
-  data.currentUser = { username: actor.username, role: actor.role, displayName: actor.displayName || actor.username };
+  data.slotOptions = isAdmin ? [] : availableEnumeratorSlots_(actor.username);
+  data.currentUser = { username: actor.username, role: actor.role, displayName: actor.displayName || actor.username, slot: activeSlot };
   auditLog_(actor.username, actor.role, 'field_map_open', 'dwelling_map', 'ISLA_TUYU', data.assignmentSummary);
   return data;
+}
+
+function claimEnumeratorSlot(sessionToken, slot) {
+  var actor = requireRole_(sessionToken, ['editor','viewer']);
+  ensureHeaders_(APP_CFG.SHEETS.ENUMERATOR_SLOTS, ENUMERATOR_SLOT_HEADERS_);
+  slot = normalizeText_(slot).toLowerCase();
+  if (!/^encuestador[1-8]$/.test(slot)) throw new Error('Numero de encuestador invalido.');
+  var rows = getRowsAsObjects_(APP_CFG.SHEETS.ENUMERATOR_SLOTS);
+  var now = nowIso_();
+  rows.forEach(function(r) {
+    var active = asBool_(r.active);
+    var owner = normalizeText_(r.username).toLowerCase();
+    var rowSlot = normalizeText_(r.slot).toLowerCase();
+    if (active && rowSlot === slot && owner !== actor.username) throw new Error('Ese numero ya fue tomado por otro usuario.');
+  });
+  var saved = false;
+  rows.forEach(function(r) {
+    var owner = normalizeText_(r.username).toLowerCase();
+    if (owner === actor.username) {
+      r.slot = slot;
+      r.active = 'SI';
+      r.updated_at = now;
+      if (!normalizeText_(r.assigned_at)) r.assigned_at = now;
+      updateRowByNumber_(APP_CFG.SHEETS.ENUMERATOR_SLOTS, r.__rowNum, r);
+      saved = true;
+    }
+  });
+  if (!saved) appendObject_(APP_CFG.SHEETS.ENUMERATOR_SLOTS, { username: actor.username, slot: slot, active: 'SI', assigned_at: now, updated_at: now }, ENUMERATOR_SLOT_HEADERS_);
+  auditLog_(actor.username, actor.role, 'claim_enumerator_slot', 'enumerator_slot', slot, {});
+  return { ok: true, slot: slot };
 }
 
 function saveDwellingAssignments(sessionToken, assignments) {
@@ -94,24 +130,49 @@ function dwellingVisitMap_() {
     if (!id) return;
     var ts = normalizeText_(r.submission_ts);
     if (!out[id] || ts > out[id].submission_ts) {
-      out[id] = { source_uuid: normalizeText_(r.source_uuid), submission_ts: ts, encuestador: normalizeText_(r.encuestador_usuario) };
+      out[id] = { source_uuid: normalizeText_(r.source_uuid), submission_ts: ts, encuestador: normalizeText_(r.encuestador_usuario), duration_min: normalizeText_(r.duracion_min) };
     }
   });
   return out;
 }
 
-function assignmentSummary_(dwellings, actor) {
+function assignmentSummary_(dwellings, actor, effectiveNames) {
+  effectiveNames = effectiveNames || [actor.username];
   var s = { total: dwellings.length, visibles: 0, asignadas: 0, sinAsignar: 0, mias: 0, visitadas: 0, pendientesMias: 0 };
   dwellings.forEach(function(p) {
     if (p.visible) s.visibles++;
     if (p.assigned_to) s.asignadas++; else s.sinAsignar++;
     if (p.status === 'visitada') s.visitadas++;
-    if (p.assigned_to === actor.username) {
+    if (effectiveNames.indexOf(p.assigned_to) >= 0) {
       s.mias++;
       if (p.status !== 'visitada') s.pendientesMias++;
     }
   });
   return s;
+}
+
+function activeEnumeratorSlot_(username) {
+  username = normalizeText_(username).toLowerCase();
+  var rows = getRowsAsObjects_(APP_CFG.SHEETS.ENUMERATOR_SLOTS);
+  for (var i = rows.length - 1; i >= 0; i--) {
+    if (normalizeText_(rows[i].username).toLowerCase() === username && asBool_(rows[i].active)) return normalizeText_(rows[i].slot).toLowerCase();
+  }
+  return '';
+}
+
+function availableEnumeratorSlots_(username) {
+  username = normalizeText_(username).toLowerCase();
+  var mine = activeEnumeratorSlot_(username);
+  var taken = {};
+  getRowsAsObjects_(APP_CFG.SHEETS.ENUMERATOR_SLOTS).forEach(function(r) {
+    if (asBool_(r.active) && normalizeText_(r.username).toLowerCase() !== username) taken[normalizeText_(r.slot).toLowerCase()] = true;
+  });
+  var out = [];
+  for (var i = 1; i <= 8; i++) {
+    var slot = 'encuestador' + i;
+    if (!taken[slot] || slot === mine) out.push({ slot: slot, selected: slot === mine });
+  }
+  return out;
 }
 
 function fieldMapAssignableUsers_() {

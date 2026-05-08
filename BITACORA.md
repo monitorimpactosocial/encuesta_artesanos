@@ -537,6 +537,60 @@ Despues de hacer login en la Web App, ir al panel Admin y ejecutar **"Sincroniza
 - El estado pendiente/visitado se distingue por intensidad de color.
 - La planificacion automatica ahora separa viviendas en clusters por distancia antes de asignar sectores.
 
+## 2026-05-08 - Usuario real reclama numero operativo y ve solo su ruta
+
+### Pedido
+- Cuando un usuario real tipo `nombre.apellido` inicia sesion, debe seleccionar un numero de encuestador disponible.
+- Luego debe ver solo las viviendas asignadas a ese numero operativo, su ruta y tiempos estimados por vivienda y total.
+- La duracion real de entrevistas debe alimentar una reestimacion del tiempo total.
+- Solo `diego.meza`, `noelia.mendoza` y `latiffi.chelala` pueden ver utilidades administrativas.
+
+### Cambios aplicados
+- `Seed.gs`:
+  - Se agregaron administradoras autorizadas `noelia.mendoza` y `latiffi.chelala`.
+  - El alias legado `lati` queda sin privilegios administrativos efectivos.
+  - Se agrego `ENUMERATOR_SLOT_HEADERS_` para la hoja de asignacion de numeros operativos.
+- `Config.gs` / `Setup.gs`:
+  - Nueva hoja `ENCUESTADOR_SLOTS`.
+  - `setupBackend()` y `fixEverything()` aseguran sus encabezados.
+- `Auth.gs`:
+  - Nueva regla `effectiveRole_()`: solo `diego.meza`, `noelia.mendoza` y `latiffi.chelala` conservan rol admin.
+  - Si otro usuario figura como admin en la hoja, se degrada efectivamente a `editor` en runtime.
+- `MapData.gs`:
+  - `claimEnumeratorSlot(sessionToken, slot)` permite que un usuario tome `encuestador1` a `encuestador8` si esta disponible.
+  - `getFieldMapData()` usa el numero operativo activo para filtrar viviendas:
+    - admins ven todo,
+    - usuarios no admin ven solo viviendas asignadas a su numero operativo.
+  - Las visitas traen `duracion_min` real para reestimar ruta.
+- `Client.html`:
+  - Usuarios no admin solo ven `Inicio`, `Formulario` y `Mapa territorial`.
+  - `Dashboard`, `Respuestas` y `Administracion` quedan restringidos a admin.
+  - Si un usuario no admin no tiene numero operativo, el mapa muestra selector de numero disponible.
+  - La vista de ruta muestra viviendas visibles, pendientes, km aproximados, duracion por vivienda y total reestimado.
+  - Boton `Recalcular` recarga mapa y usa duraciones reales ya registradas.
+
+### Validacion local
+- `Client.html`, `Auth.gs`, `MapData.gs`, `Seed.gs`, `App.gs`, `Config.gs` y `Setup.gs` pasaron `node --check`.
+
+### Pendiente de liberacion
+1. `npx clasp push -f`.
+2. Crear nueva version GAS.
+3. Actualizar deployment publico.
+4. Verificar `/exec` HTTP 200.
+5. Commit/push Git.
+
+### Liberacion ejecutada
+- `npx clasp push -f`: exitoso, 14 archivos subidos.
+- `npx clasp version "v23 - ruta por usuario real y slots operativos"`: creada version 23.
+- `npx clasp deploy -i AKfycbwTpwf0GoONoPOEJnE-IxoDiYofcB54c_aQBoPlvaCrjYcJ_RNhdxqJC9dEClZH0Kk -V 23`: deployment publico actualizado.
+- `npx clasp deployments`: confirma `AKfycbwTpwf0GoONoPOEJnE-IxoDiYofcB54c_aQBoPlvaCrjYcJ_RNhdxqJC9dEClZH0Kk @23 - v23 - ruta por usuario real y slots operativos`.
+- Verificacion HTTP de `/exec`: status `200`.
+
+### Estado operativo
+- Publicado el flujo usuario real -> numero operativo -> mapa filtrado.
+- La app ya registra duracion real por encuesta en `duracion_min` y la usa para reestimar tiempos visibles en `Mi ruta y tiempos`.
+- Privilegios administrativos efectivos limitados a `diego.meza`, `noelia.mendoza` y `latiffi.chelala`.
+
 ### Liberacion ejecutada
 - `npx clasp push -f`: exitoso, 14 archivos subidos.
 - `npx clasp version "v21 - usuarios genericos y auto plan operativo"`: creada version 21.

@@ -21,7 +21,8 @@ var APP_CFG = {
     AUDIT: 'AUDITORIA',
     PHOTOS: 'FOTOS',
     DIRECTORY: 'DIRECTORIO_ARTESANOS',
-    DWELLING_ASSIGNMENTS: 'ASIGNACIONES_VIVIENDA'
+    DWELLING_ASSIGNMENTS: 'ASIGNACIONES_VIVIENDA',
+    ENUMERATOR_SLOTS: 'ENCUESTADOR_SLOTS'
   },
   PII_FIELDS: [
     'nombre_completo_raw','nombre_completo','cedula_raw','cedula','telefono','direccion_referencia',

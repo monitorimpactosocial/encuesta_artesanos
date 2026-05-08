@@ -20,6 +20,7 @@ function setupBackend(spreadsheetId, photosFolderId) {
   ensureHeaders_(APP_CFG.SHEETS.PHOTOS, PHOTO_HEADERS_);
   ensureHeaders_(APP_CFG.SHEETS.DIRECTORY, ['respondente_id','nombre_completo','cedula','telefono','comunidad','tipo_artesania_principal','asociacion_nombre','ultima_actualizacion']);
   ensureHeaders_(APP_CFG.SHEETS.DWELLING_ASSIGNMENTS, DWELLING_ASSIGNMENT_HEADERS_);
+  ensureHeaders_(APP_CFG.SHEETS.ENUMERATOR_SLOTS, ENUMERATOR_SLOT_HEADERS_);
 
   seedAll();
   syncHeaders_(APP_CFG.SHEETS.RESPONSES, getResponseHeaders_());
@@ -39,6 +40,7 @@ function fixEverything() {
   ensureHeaders_(APP_CFG.SHEETS.AUDIT, AUDIT_HEADERS_);
   ensureHeaders_(APP_CFG.SHEETS.PHOTOS, PHOTO_HEADERS_);
   ensureHeaders_(APP_CFG.SHEETS.DWELLING_ASSIGNMENTS, DWELLING_ASSIGNMENT_HEADERS_);
+  ensureHeaders_(APP_CFG.SHEETS.ENUMERATOR_SLOTS, ENUMERATOR_SLOT_HEADERS_);
   syncHeaders_(APP_CFG.SHEETS.RESPONSES, getResponseHeaders_());
   hashSeedUsers_();
   rebuildAnalytics();

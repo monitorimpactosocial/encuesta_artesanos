@@ -115,7 +115,8 @@
   }
   function sidebar_(){
     const links=state.bootstrap.app.links||{};
-    const nav=[['inicio','🏠','Inicio'],['formulario','📝','Formulario'],['mapa','🗺️','Mapa territorial'],['dashboard','📊','Dashboard'],['respuestas','🗂️','Respuestas'],['admin','⚙️','Administración']];
+    const isAdmin=state.session&&state.session.role==='admin';
+    const nav=[['inicio','🏠','Inicio'],['formulario','📝','Formulario'],['mapa','🗺️','Mapa territorial']].concat(isAdmin?[['dashboard','📊','Dashboard'],['respuestas','🗂️','Respuestas'],['admin','⚙️','Administración']]:[]);
     return '<aside class="sidebar"><div class="brand"><div class="brand-mark">IH</div><div><h1>'+esc(state.bootstrap.app.appName)+'</h1><p>'+esc(state.bootstrap.app.projectName)+'</p></div></div>'+ 
       '<div class="nav">'+nav.map(x=>'<button data-nav="'+x[0]+'" class="'+(state.tab===x[0]?'active':'')+'"><span>'+x[1]+'</span><b>'+x[2]+'</b></button>').join('')+'</div>'+ 
       '<div class="side-card"><h3>Operativo</h3><p>Formulario optimizado para relevamiento socioeconómico, productivo y comercial de artesanos de Isla Hermosa.</p></div>'+ 
@@ -136,9 +137,9 @@
     if(state.tab==='inicio') return homeView_();
     if(state.tab==='formulario') return surveyView_();
     if(state.tab==='mapa') return authGate_(fieldMapView_);
-    if(state.tab==='dashboard') return authGate_(dashboardView_);
-    if(state.tab==='respuestas') return authGate_(responsesView_);
-    if(state.tab==='admin') return authGate_(adminView_, ['admin','editor']);
+    if(state.tab==='dashboard') return authGate_(dashboardView_, ['admin']);
+    if(state.tab==='respuestas') return authGate_(responsesView_, ['admin']);
+    if(state.tab==='admin') return authGate_(adminView_, ['admin']);
     return homeView_();
   }
   function authGate_(renderFn, roles){
@@ -321,6 +322,7 @@
     if(state.fieldMapError) return '<div class="card error"><h3>Error al cargar el mapa</h3><p>'+esc(state.fieldMapError)+'</p><div class="toolbar" style="margin-top:12px"><button class="btn" id="retryFieldMap">Reintentar</button></div></div>';
     if(!state.fieldMap) return '<div class="card"><span class="loader"></span> Cargando mapa territorial...</div>';
     const d=state.fieldMap, m=fieldMapMetrics_(d), s=d.assignmentSummary||{}, isAdmin=(d.currentUser&&d.currentUser.role)==='admin';
+    if(!isAdmin && !(d.currentUser&&d.currentUser.slot)) return slotSelectionView_(d);
     const users=d.users||[];
     const adminBox=isAdmin?
       '<div class="card assign-panel"><h3>Asignar viviendas</h3><p class="small muted">Seleccione puntos en el mapa y asigne una tanda de trabajo. Los puntos visitados quedan bloqueados como evidencia.</p><label>Encuestador<select class="control" id="assignUser"><option value="">Seleccione...</option>'+users.map(u=>'<option value="'+esc(u.username)+'">'+esc(u.display_name)+' · '+esc(u.username)+'</option>').join('')+'</select></label><div class="grid cols-2" style="margin-top:10px"><label>Prioridad<select class="control" id="assignPriority"><option>normal</option><option>alta</option><option>baja</option></select></label><label>Orden inicial<input class="control" id="assignStart" type="number" min="1" value="1"></label></div><label style="margin-top:10px;display:block">Nota<input class="control" id="assignNotes" placeholder="Ej: iniciar por camino principal"></label><p class="pill" style="margin-top:10px"><span id="selectedCount">0</span> viviendas seleccionadas</p><div class="toolbar" style="margin-top:12px"><button class="btn" id="saveAssignments">Asignar seleccion</button><button class="btn secondary" id="clearAssignments">Liberar seleccion</button><button class="btn ghost" id="clearSelection">Limpiar seleccion</button></div></div>'+
@@ -329,7 +331,11 @@
       '<div class="field-map-panel"><div class="card"><h3>Plan de cobertura</h3><div class="mini-kpis"><div><b>'+n(s.total||d.stats.viviendasIne)+'</b><span>viviendas mapeadas</span></div><div><b>'+n(s.mias||0)+'</b><span>asignadas a mi usuario</span></div><div><b>'+n(s.pendientesMias||0)+'</b><span>pendientes propias</span></div><div><b>'+n(s.visitadas||0)+'</b><span>visitadas con encuesta</span></div></div></div>'+
       '<div class="card"><h3>Lectura territorial</h3><div class="mini-kpis"><div><b>'+esc(m.areaKm2)+'</b><span>km² aprox. de polígono</span></div><div><b>'+esc(m.maxDistanceKm)+'</b><span>km entre extremos</span></div><div><b>'+esc(m.avgNearestM)+'</b><span>m al vecino más cercano</span></div><div><b>'+n(s.sinAsignar||0)+'</b><span>sin asignar</span></div></div></div>'+
       '<div class="card"><h3>Capas</h3><label class="check-item"><input type="checkbox" id="layerBoundary" checked> <span>Límite Isla Tuyu</span></label><label class="check-item"><input type="checkbox" id="layerDwellings" checked> <span>Viviendas existentes</span></label><label class="check-item"><input type="checkbox" id="layerRoutes" checked> <span>Rutas y caminos operativos</span></label><label class="check-item"><input type="checkbox" id="layerLabels" checked> <span>Números de vivienda</span></label><div class="field-legend">'+assignmentLegend_(d)+'</div><div class="toolbar" style="margin-top:12px"><button class="btn secondary" id="fitFieldMap">Centrar todo</button></div></div>'+
-      adminBox+'<div class="card"><h3>Fuente y uso</h3><p class="small muted">Base: '+esc(d.source)+'. Los puntos son viviendas del marco INE; deben validarse en campo porque no sustituyen confirmación local, ocupación actual ni cantidad de personas.</p></div></div></div>';
+      (!isAdmin?routeSummaryHtml_(d):'')+adminBox+'<div class="card"><h3>Fuente y uso</h3><p class="small muted">Base: '+esc(d.source)+'. Los puntos son viviendas del marco INE; deben validarse en campo porque no sustituyen confirmación local, ocupación actual ni cantidad de personas.</p></div></div></div>';
+  }
+  function slotSelectionView_(d){
+    const opts=(d.slotOptions||[]).map(o=>'<option value="'+esc(o.slot)+'">'+esc(o.slot.replace('encuestador','Encuestador '))+'</option>').join('');
+    return '<div class="card"><h3>Seleccione su numero de encuestador</h3><p class="muted">Su usuario real es <b>'+esc(d.currentUser.username)+'</b>. Elija uno de los numeros disponibles para ver solo sus viviendas, su ruta y sus tiempos.</p><label>Numero disponible<select class="control" id="claimSlot"><option value="">Seleccione...</option>'+opts+'</select></label><div class="toolbar" style="margin-top:12px"><button class="btn" id="claimSlotBtn">Tomar numero</button></div></div>';
   }
   async function loadFieldMap_(){
     if(!state.session)return;
@@ -340,8 +346,18 @@
   }
   function bindFieldMap_(){
     const retry=document.getElementById('retryFieldMap'); if(retry) retry.onclick=()=>{state.fieldMap=null;state.fieldMapError=null;loadFieldMap_();};
+    const claim=document.getElementById('claimSlotBtn'); if(claim) claim.onclick=claimSlot_;
+    const recalc=document.getElementById('recalcRoute'); if(recalc) recalc.onclick=()=>{state.fieldMap=null;loadFieldMap_();};
     if(!state.fieldMap)return;
     setTimeout(initFieldMap_, 40);
+  }
+  async function claimSlot_(){
+    const slot=document.getElementById('claimSlot')?document.getElementById('claimSlot').value:'';
+    if(!slot){toast('error','Seleccione un numero de encuestador.');return;}
+    setLoading(true);
+    try{await callServer('claimEnumeratorSlot',sessionToken(),slot); toast('success','Numero asignado: '+slot); state.fieldMap=null; await loadFieldMap_();}
+    catch(e){toast('error',e.message||String(e));}
+    finally{setLoading(false);}
   }
   function initFieldMap_(){
     const el=document.getElementById('fieldMapBox'); if(!el || !state.fieldMap || typeof L==='undefined')return;
@@ -437,6 +453,17 @@
       const points=by[u].slice().sort((a,b)=>(Number(a.route_order)||9999)-(Number(b.route_order)||9999));
       return {user:u,points:points,visited:points.every(p=>p.status==='visitada')};
     });
+  }
+  function routeSummaryHtml_(d){
+    const pts=(d.dwellings||[]).filter(p=>p.visible!==false).sort((a,b)=>(Number(a.route_order)||9999)-(Number(b.route_order)||9999));
+    const real=pts.map(p=>Number(p.real_duration_min||0)).filter(x=>x>0);
+    const per=real.length?Math.round(real.reduce((a,b)=>a+b,0)/real.length):surveyTimeEstimate_();
+    const pending=pts.filter(p=>p.status!=='visitada').length;
+    const dist=routeDistanceKm_(pts);
+    const travel=Math.round(dist/3.5*60);
+    const total=real.reduce((a,b)=>a+b,0)+(pending*per)+travel;
+    const rows=pts.map(p=>'<tr><td>'+esc(p.route_order||'')+'</td><td>Vivienda '+esc(p.n)+'</td><td>'+esc(p.status)+'</td><td>'+esc(p.real_duration_min||per)+' min</td></tr>').join('');
+    return '<div class="card"><h3>Mi ruta y tiempos</h3><div class="mini-kpis"><div><b>'+n(pts.length)+'</b><span>viviendas visibles</span></div><div><b>'+n(pending)+'</b><span>pendientes</span></div><div><b>'+dist.toFixed(2)+'</b><span>km ruta aprox.</span></div><div><b>'+Math.round(total)+'</b><span>min total reestimado</span></div></div><div class="toolbar" style="margin-top:12px"><button class="btn secondary" id="recalcRoute">Recalcular</button></div><div class="table-wrap" style="margin-top:12px"><table><thead><tr><th>Orden</th><th>Punto</th><th>Estado</th><th>Duracion</th></tr></thead><tbody>'+rows+'</tbody></table></div><p class="small muted">El boton recalcula usando duraciones reales ya guardadas; si no hay suficientes, usa la estimacion del cuestionario.</p></div>';
   }
   function toggleDwellingSelection_(id){
     if(state.fieldMapSelected[id]) delete state.fieldMapSelected[id]; else state.fieldMapSelected[id]=true;

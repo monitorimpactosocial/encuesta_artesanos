@@ -55,21 +55,22 @@ function login(username, password) {
     throw new Error('Contraseña incorrecta.' + (fails >= 3 ? ' (' + (5 - fails - 1) + ' intentos restantes)' : ''));
   }
   sc.remove(failKey);
+  var role = effectiveRole_(username, normalizeText_(user.role) || 'viewer');
   var token = uuid_();
   var expires = new Date(new Date().getTime() + APP_CFG.SESSION_HOURS * 60 * 60 * 1000).toISOString();
   CacheService.getScriptCache().put('SESSION_' + token, JSON.stringify({
     username: username,
     displayName: normalizeText_(user.display_name) || username,
-    role: normalizeText_(user.role) || 'viewer',
+    role: role,
     expiresAt: expires,
     mustChangePassword: asBool_(user.must_change_password)
   }), APP_CFG.SESSION_HOURS * 60 * 60);
-  auditLog_(username, normalizeText_(user.role), 'login', 'user', username, {});
+  auditLog_(username, role, 'login', 'user', username, {});
   return {
     token: token,
     username: username,
     displayName: normalizeText_(user.display_name) || username,
-    role: normalizeText_(user.role) || 'viewer',
+    role: role,
     mustChangePassword: asBool_(user.must_change_password),
     expiresAt: expires
   };
@@ -88,9 +89,20 @@ function getSession_(token) {
 function requireRole_(token, roles) {
   var s = getSession_(token);
   if (!s) throw new Error('Sesión expirada o no iniciada.');
+  s.role = effectiveRole_(s.username, s.role);
   roles = roles || ['admin','editor','viewer'];
   if (roles.indexOf(s.role) < 0) throw new Error('Permisos insuficientes para esta operación.');
   return s;
+}
+
+function isAuthorizedAdmin_(username) {
+  return ['diego.meza','noelia.mendoza','latiffi.chelala'].indexOf(normalizeText_(username).toLowerCase()) >= 0;
+}
+
+function effectiveRole_(username, role) {
+  role = normalizeText_(role) || 'viewer';
+  if (role === 'admin' && !isAuthorizedAdmin_(username)) return 'editor';
+  return role;
 }
 
 function logout(token) {
@@ -119,6 +131,7 @@ function changePassword(token, currentPassword, newPassword) {
 
 function getBootstrap(token) {
   var session = getSession_(token);
+  if (session) session.role = effectiveRole_(session.username, session.role);
   return {
     app: {
       appName: APP_CFG.APP_NAME,
@@ -159,7 +172,7 @@ function saveUser(sessionToken, user) {
   var obj = {
     username: username,
     display_name: normalizeText_(user.display_name) || username,
-    role: normalizeText_(user.role) || 'viewer',
+    role: effectiveRole_(username, normalizeText_(user.role) || 'viewer'),
     password_hash: normalizeText_(user.password_hash),
     password_temporal: normalizeText_(user.password_temporal),
     active: normalizeText_(user.active) || 'SI',

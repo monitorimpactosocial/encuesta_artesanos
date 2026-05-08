@@ -31,6 +31,7 @@ function doPost(e) {
     saveUser: saveUser,
     getFieldMapData: getFieldMapData,
     saveDwellingAssignments: saveDwellingAssignments,
+    claimEnumeratorSlot: claimEnumeratorSlot,
     getSpreadsheetLinks: getSpreadsheetLinks,
     syncQuestionnaireMetadata: syncQuestionnaireMetadata,
     exportResponsesCsv: exportResponsesCsv
