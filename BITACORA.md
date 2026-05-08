@@ -581,6 +581,17 @@ Despues de hacer login en la Web App, ir al panel Admin y ejecutar **"Sincroniza
 
 ### Liberacion ejecutada
 - `npx clasp push -f`: exitoso, 14 archivos subidos.
+- `npx clasp version "v28 - tiempo total en simultaneo"`: creada version 28.
+- `npx clasp deploy -i AKfycbwTpwf0GoONoPOEJnE-IxoDiYofcB54c_aQBoPlvaCrjYcJ_RNhdxqJC9dEClZH0Kk -V 28`: deployment publico actualizado.
+- `npx clasp deployments`: confirma `AKfycbwTpwf0GoONoPOEJnE-IxoDiYofcB54c_aQBoPlvaCrjYcJ_RNhdxqJC9dEClZH0Kk @28 - v28 - tiempo total en simultaneo`.
+- Verificacion HTTP de `/exec`: status `200`.
+
+### Estado operativo
+- El tiempo total del relevamiento ya se presenta como duracion simultanea/calendario.
+- La acumulacion de tiempos individuales deja de presentarse como total del operativo.
+
+### Liberacion ejecutada
+- `npx clasp push -f`: exitoso, 14 archivos subidos.
 - `npx clasp version "v27 - aclarar tiempos de relevamiento"`: creada version 27.
 - `npx clasp deploy -i AKfycbwTpwf0GoONoPOEJnE-IxoDiYofcB54c_aQBoPlvaCrjYcJ_RNhdxqJC9dEClZH0Kk -V 27`: deployment publico actualizado.
 - `npx clasp deployments`: confirma `AKfycbwTpwf0GoONoPOEJnE-IxoDiYofcB54c_aQBoPlvaCrjYcJ_RNhdxqJC9dEClZH0Kk @27 - v27 - aclarar tiempos de relevamiento`.
@@ -589,6 +600,30 @@ Despues de hacer login en la Web App, ir al panel Admin y ejecutar **"Sincroniza
 ### Estado operativo
 - El panel de tiempos diferencia explicitamente esfuerzo total y duracion calendario.
 - La duracion promedio de cada encuesta queda editable como parametro de simulacion.
+
+## 2026-05-08 - Tiempo total siempre en simultaneo
+
+### Problema reportado
+- El operativo se realiza siempre con encuestadores trabajando en simultaneo.
+- Por lo tanto, la estimacion del tiempo total del relevamiento no debe presentarse como acumulacion de tiempos individuales.
+
+### Cambios aplicados
+- `Client.html`:
+  - El panel de tiempos ahora indica explicitamente que las encuestas se realizan en simultaneo.
+  - El KPI principal pasa a ser `duracion total con asignacion actual`.
+  - El escenario simulado se presenta como `duracion total del escenario simulado`.
+  - Se elimina de los KPIs principales la idea de `esfuerzo total del relevamiento`.
+  - La tabla por encuestador muestra `Duracion de su ruta`; el relevamiento completo termina cuando termina la ruta mas larga, o segun el escenario de encuestadores simultaneos ensayado.
+
+### Validacion local
+- `Client.html`: script embebido validado con `node --check`.
+
+### Pendiente de liberacion
+1. `npx clasp push -f`.
+2. Crear nueva version GAS.
+3. Actualizar deployment publico.
+4. Verificar `/exec` HTTP 200.
+5. Commit/push Git.
 
 ### Liberacion ejecutada
 - `npx clasp push -f`: exitoso, 14 archivos subidos.
