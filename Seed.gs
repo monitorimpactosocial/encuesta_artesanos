@@ -296,6 +296,28 @@ function seedUsers_() {
   hashSeedUsers_();
 }
 
+function ensureDefaultUsers_() {
+  ensureHeaders_(APP_CFG.SHEETS.USERS, USER_HEADERS_);
+  var existing = getRowsAsObjects_(APP_CFG.SHEETS.USERS);
+  var present = {};
+  existing.forEach(function(u) {
+    var username = normalizeText_(u.username).toLowerCase();
+    if (username) present[username] = true;
+  });
+  var added = 0;
+  defaultUsers_().forEach(function(row) {
+    var username = normalizeText_(row[0]).toLowerCase();
+    if (!username || present[username]) return;
+    var obj = {};
+    USER_HEADERS_.forEach(function(h, i) { obj[h] = row[i] || ''; });
+    appendObject_(APP_CFG.SHEETS.USERS, obj, USER_HEADERS_);
+    present[username] = true;
+    added++;
+  });
+  if (added) hashSeedUsers_();
+  return { ok: true, added: added };
+}
+
 function resetUsers() {
   replaceSheetData_(APP_CFG.SHEETS.USERS, USER_HEADERS_, defaultUsers_());
   hashSeedUsers_();

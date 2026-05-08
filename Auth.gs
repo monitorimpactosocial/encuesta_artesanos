@@ -20,6 +20,7 @@ function ensureAuthReady_() {
     seedUsers_();
     return;
   }
+  ensureDefaultUsers_();
   hashSeedUsers_();
 }
 

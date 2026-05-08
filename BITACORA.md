@@ -263,3 +263,51 @@ Despues de hacer login en la Web App, ir al panel Admin y ejecutar **"Sincroniza
 - Ejecutar `runSetup()` desde el editor Apps Script si aun no se hizo (autoriza OAuth).
 - Probar login, luego sincronizar cuestionario, luego QA del formulario completo.
 - Cambiar credenciales iniciales.
+
+## 2026-05-08 - Login bloqueado: solucion sin depender del boton reset
+
+### Diagnostico retomado
+- Se estudio la bitacora vigente y se confirmo que el problema mas probable es la hoja `USUARIOS` con usuarios antiguos (`admin`/`user`) y sin los usuarios Paracel agregados en `Seed.gs`.
+- El deployment publico vigente sigue siendo `AKfycbwTpwf0GoONoPOEJnE-IxoDiYofcB54c_aQBoPlvaCrjYcJ_RNhdxqJC9dEClZH0Kk @15 - v15 - usuarios Paracel (diego.meza/123456), boton resetear en login`.
+- `Client.html` local contiene la correccion de `callServer`: `runner[fn].apply(runner, args)`, por lo que el bug de v13 (`apply(null, args)`) no esta presente en el codigo versionado actual.
+- `Client.html` local contiene el boton `Restablecer usuarios`, y `Seed.gs` contiene `resetUsers()` con los cuatro usuarios Paracel: `diego.meza`, `lati`, `encuestador`, `viewer`.
+
+### Verificacion ejecutada
+- `npx clasp deployments` confirmo 2 deployments: `@HEAD` y el deployment publico `@15`.
+- Se intento ejecutar `npx clasp run resetUsers` para reparar directamente la hoja, pero Google respondio: `Unable to run script function. Please make sure you have permission to run the script function.`
+- Por lo tanto no fue posible actualizar la hoja `USUARIOS` desde la terminal en esta pasada.
+
+### Correccion aplicada localmente
+- `Seed.gs`: se agrego `ensureDefaultUsers_()`.
+  - Asegura cabeceras de `USUARIOS`.
+  - Lee los usuarios existentes.
+  - Agrega solamente los usuarios Paracel faltantes.
+  - No borra ni sobreescribe usuarios existentes.
+  - Hashea las contrasenas temporales agregadas.
+- `Auth.gs`: `ensureAuthReady_()` ahora llama a `ensureDefaultUsers_()` cuando la hoja ya tiene usuarios. Esto corrige el caso donde `USUARIOS` no esta vacia, pero le faltan los usuarios nuevos.
+
+### Resultado esperado
+- Tras desplegar esta correccion en GAS, el primer intento de login o bootstrap de autenticacion debe agregar automaticamente `diego.meza / 123456` si falta en `USUARIOS`.
+- El boton `Restablecer usuarios` queda como plan B, ya no como requisito principal.
+
+### Validacion local
+- `Auth.gs` y `Seed.gs` fueron validados sintacticamente con `node --check` por stdin, sin errores.
+
+### Pendiente inmediato
+1. Ejecutar `npx clasp push -f`.
+2. Crear nueva version GAS y actualizar el deployment publico.
+3. Probar `/exec` en incognito.
+4. Ingresar con `diego.meza / 123456`.
+5. Si aun no responde, abrir consola del navegador y distinguir entre cache stale de GAS, pantalla OAuth o timeout de servidor.
+
+### Liberacion ejecutada
+- `npx clasp push -f`: exitoso, 13 archivos subidos a Apps Script.
+- `npx clasp version "v16 - autoagregar usuarios Paracel faltantes en login"`: creada version 16.
+- `npx clasp deploy -i AKfycbwTpwf0GoONoPOEJnE-IxoDiYofcB54c_aQBoPlvaCrjYcJ_RNhdxqJC9dEClZH0Kk -V 16`: deployment publico actualizado a `@16`.
+- `npx clasp deployments`: confirma deployment publico `AKfycbwTpwf0GoONoPOEJnE-IxoDiYofcB54c_aQBoPlvaCrjYcJ_RNhdxqJC9dEClZH0Kk @16 - v16 - autoagregar usuarios Paracel faltantes en login`.
+- Verificacion HTTP de `/exec`: status `200`.
+
+### Estado tras la liberacion
+- La Web App publica ya sirve una version que no depende de que la hoja `USUARIOS` este vacia ni del boton `Restablecer usuarios`.
+- En el primer flujo de autenticacion, si faltan los usuarios Paracel, el backend debe agregarlos automaticamente y hashear sus claves temporales.
+- Siguiente prueba funcional recomendada: abrir `/exec` en incognito e ingresar `diego.meza / 123456`. Si no entra, revisar consola F12 y capturar el error exacto.
