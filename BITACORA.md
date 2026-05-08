@@ -358,3 +358,55 @@ Despues de hacer login en la Web App, ir al panel Admin y ejecutar **"Sincroniza
 - El tablero ya no devuelve fechas/objetos crudos desde `rowsPreview`, reduciendo el riesgo de falla de serializacion en `google.script.run`.
 - La lectura del tablero queda limitada por `dashboard_row_limit` para evitar esperas largas por hojas grandes.
 - Si el tablero aun no carga en navegador, el siguiente dato necesario es el mensaje visible dentro de la tarjeta `Error al cargar el dashboard` o el error exacto tras esperar el timeout de la llamada.
+
+## 2026-05-08 - Nueva vista: mapa territorial Isla Hermosa / Isla Tuyu
+
+### Pedido recibido
+- Crear una vista de mapa preciso del lugar `Isla Hermosa`, antes `Isla Tuyu`, para planificar la encuesta con una idea previa de viviendas existentes, distancias, caminos, cantidad de viviendas y personas.
+- Fuentes locales indicadas:
+  - `G:\Mi unidad\MAPEO_COMUNIDADES_INDIGENAS`
+  - `G:\Mi unidad\CONCEPCION_AMAMBAY_GEODEMOGSOCIAL`
+
+### Exploracion de fuentes
+- En `CONCEPCION_AMAMBAY_GEODEMOGSOCIAL\concepcion_amambay_geodemogsocial\public\concepcion_amambay_barrios.geojson` se encontro `ISLA TUYU`, distrito `PASO BARRETO`, departamento `CONCEPCION`, `BAR_LOC=420`.
+- En `CONCEPCION_AMAMBAY_GEODEMOGSOCIAL\concepcion_amambay_geodemogsocial\public\viviendas_concepcion.geojson` se encontraron 69 puntos de vivienda para `ISLA TUYU / PASO BARRETO`.
+- No se encontraron manzanas asociadas a `ISLA TUYU` en `concepcion_amambay_manzanas.geojson`.
+- Tambien aparece `ASENT. BARRIO HERMOSA` en Sargento Jose Felix Lopez, pero para este pedido se priorizo `ISLA TUYU` porque el usuario indico que Isla Hermosa era antes Isla Tuyu.
+
+### Implementacion local
+- `MapData.gs`: nuevo archivo con el recorte liviano de datos territoriales:
+  - Limite operativo de `ISLA TUYU` como poligono Leaflet.
+  - 69 viviendas INE georreferenciadas, numeradas de norte a sur / oeste a este.
+  - Metadata de fuente, centro y bounds.
+  - Funcion `getFieldMapData(sessionToken)` protegida para roles `admin`, `editor`, `viewer`.
+- `AppIndex.html`: se agrego Leaflet CSS/JS para la Web App nativa GAS.
+- `Client.html`: nueva vista autenticada `Mapa territorial` en la navegacion.
+  - Mapa Leaflet con base OpenStreetMap.
+  - Capa de limite de Isla Tuyu.
+  - Capa de viviendas numeradas.
+  - Controles para activar/desactivar limite, viviendas y etiquetas.
+  - KPIs operativos: viviendas INE, area aproximada, distancia maxima entre viviendas y distancia promedio al vecino mas cercano.
+- `Styles.html`: estilos para el mapa full-height, panel lateral, marcadores numerados y modo responsive.
+
+### Validacion local
+- `MapData.gs` paso `node --check` por stdin.
+- El script embebido en `Client.html` paso `node --check` por stdin.
+
+### Pendiente de liberacion
+1. `npx clasp push -f`.
+2. Crear nueva version GAS para el mapa territorial.
+3. Actualizar deployment publico.
+4. Verificar `/exec` HTTP 200.
+5. Probar la nueva vista `Mapa territorial` con sesion iniciada.
+
+### Liberacion ejecutada
+- `npx clasp push -f`: exitoso, 14 archivos subidos incluyendo `MapData.gs`.
+- `npx clasp version "v19 - vista mapa territorial Isla Tuyu"`: creada version 19.
+- `npx clasp deploy -i AKfycbwTpwf0GoONoPOEJnE-IxoDiYofcB54c_aQBoPlvaCrjYcJ_RNhdxqJC9dEClZH0Kk -V 19`: deployment publico actualizado.
+- `npx clasp deployments`: confirma `AKfycbwTpwf0GoONoPOEJnE-IxoDiYofcB54c_aQBoPlvaCrjYcJ_RNhdxqJC9dEClZH0Kk @19 - v19 - vista mapa territorial Isla Tuyu`.
+- Verificacion HTTP de `/exec`: status `200`.
+
+### Estado tras la liberacion
+- La Web App publicada ya incluye la vista `Mapa territorial` para usuarios autenticados.
+- La vista parte de datos reales INE: 69 viviendas georreferenciadas y limite de barrio/localidad `ISLA TUYU`.
+- Pendiente de mejora futura: incorporar caminos/hidrografia como capas vectoriales propias, y cruzar con respuestas de encuesta para mostrar viviendas visitadas, pendientes y cantidad real de personas por hogar.
