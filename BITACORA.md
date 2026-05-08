@@ -581,6 +581,17 @@ Despues de hacer login en la Web App, ir al panel Admin y ejecutar **"Sincroniza
 
 ### Liberacion ejecutada
 - `npx clasp push -f`: exitoso, 14 archivos subidos.
+- `npx clasp version "v25 - tiempos estimados por encuestador"`: creada version 25.
+- `npx clasp deploy -i AKfycbwTpwf0GoONoPOEJnE-IxoDiYofcB54c_aQBoPlvaCrjYcJ_RNhdxqJC9dEClZH0Kk -V 25`: deployment publico actualizado.
+- `npx clasp deployments`: confirma `AKfycbwTpwf0GoONoPOEJnE-IxoDiYofcB54c_aQBoPlvaCrjYcJ_RNhdxqJC9dEClZH0Kk @25 - v25 - tiempos estimados por encuestador`.
+- Verificacion HTTP de `/exec`: status `200`.
+
+### Estado operativo
+- El mapa territorial ya muestra tiempos estimados globales e individuales por encuestador.
+- La reestimacion usa duraciones reales de encuestas cerradas y se actualiza con `Recalcular tiempos`.
+
+### Liberacion ejecutada
+- `npx clasp push -f`: exitoso, 14 archivos subidos.
 - `npx clasp version "v24 - filtro mapa por encuestador"`: creada version 24.
 - `npx clasp deploy -i AKfycbwTpwf0GoONoPOEJnE-IxoDiYofcB54c_aQBoPlvaCrjYcJ_RNhdxqJC9dEClZH0Kk -V 24`: deployment publico actualizado.
 - `npx clasp deployments`: confirma `AKfycbwTpwf0GoONoPOEJnE-IxoDiYofcB54c_aQBoPlvaCrjYcJ_RNhdxqJC9dEClZH0Kk @24 - v24 - filtro mapa por encuestador`.
@@ -589,6 +600,43 @@ Despues de hacer login en la Web App, ir al panel Admin y ejecutar **"Sincroniza
 ### Estado operativo
 - Admin puede filtrar el mapa por cada encuestador asignado.
 - El filtro se aplica tambien a rutas y leyenda, no solo a los puntos.
+
+## 2026-05-08 - Estimacion de tiempos por vivienda y por encuestador
+
+### Pedido
+- En `Mapa territorial`, mostrar la estimacion del tiempo medio de encuesta por vivienda.
+- Mostrar total estimado para todos los encuestadores y tambien individualmente.
+- Recalcular luego de cada nueva encuesta usando duraciones reales.
+
+### Cambios aplicados
+- `Client.html`:
+  - Se agrego panel `Tiempos estimados del operativo` para admin.
+  - Para usuarios de campo, el mismo componente se muestra como `Mi ruta y tiempos`.
+  - KPIs agregados:
+    - viviendas asignadas,
+    - viviendas pendientes,
+    - minutos promedio por vivienda,
+    - minutos totales acumulados,
+    - minutos si los encuestadores trabajan en paralelo,
+    - cantidad de encuestas reales usadas para el recalculo.
+  - Tabla por encuestador:
+    - viviendas asignadas,
+    - pendientes,
+    - media de duracion,
+    - km de ruta,
+    - total estimado.
+  - La estimacion usa `duracion_min` real cuando existe; para viviendas pendientes sin duracion real usa la estimacion por complejidad del cuestionario.
+  - Boton `Recalcular tiempos` recarga el mapa desde backend, por lo que incorpora cualquier encuesta nueva enviada.
+
+### Validacion local
+- `Client.html`: script embebido validado con `node --check`.
+
+### Pendiente de liberacion
+1. `npx clasp push -f`.
+2. Crear nueva version GAS.
+3. Actualizar deployment publico.
+4. Verificar `/exec` HTTP 200.
+5. Commit/push Git.
 
 ### Liberacion ejecutada
 - `npx clasp push -f`: exitoso, 14 archivos subidos.
