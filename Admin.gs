@@ -1,7 +1,9 @@
 function getDashboardSummary(sessionToken, filters) {
   var actor = requireRole_(sessionToken, ['admin','editor','viewer']);
   filters = filters || {};
-  var rows = filterResponseRows_(getRowsAsObjects_(APP_CFG.SHEETS.RESPONSES), filters);
+  var limit = Math.max(1, Math.min(Number(getConfigValue_('dashboard_row_limit', 5000) || 5000), 20000));
+  var rawRows = getRowsAsObjectsLimited_(APP_CFG.SHEETS.RESPONSES, limit);
+  var rows = filterResponseRows_(rawRows, filters);
   var total = rows.length;
   var bySexo = {}, byEdad = {}, byComunidad = {}, byTipo = {}, byMateria = {}, byCanal = {}, byIngreso = {}, byCap = {}, byPrioridad = {}, byCalidad = {}, byAsoc = {}, byFormal = {}, byInteres = {};
   var photos = 0, gpsOk = 0, mujeres = 0, hombres = 0, indigenas = 0, internet = 0, digital = 0;
@@ -34,7 +36,7 @@ function getDashboardSummary(sessionToken, filters) {
     var h = asNumber_(r.total_miembros || r.total_miembros_calc); if (h !== null) { hogarSum += h; hogarN++; }
   });
 
-  auditLog_(actor.username, actor.role, 'dashboard_summary', 'responses', '', { count: total });
+  auditLog_(actor.username, actor.role, 'dashboard_summary', 'responses', '', { count: total, loadedRows: rawRows.length, limit: limit });
   return {
     total: total,
     kpi: {
@@ -58,7 +60,12 @@ function getDashboardSummary(sessionToken, filters) {
       asociacion: mapToItems_(byAsoc), formalizacion: mapToItems_(byFormal), interes: mapToItems_(byInteres)
     },
     filters: buildFilterOptions_(rows),
-    rowsPreview: rows.slice(-10).reverse().map(publicResponsePreview_)
+    rowsPreview: rows.slice(-10).reverse().map(publicResponsePreview_),
+    meta: {
+      loadedRows: rawRows.length,
+      rowLimit: limit,
+      limited: rawRows.length >= limit
+    }
   };
 }
 
@@ -90,30 +97,31 @@ function filterResponseRows_(rows, filters) {
 
 function publicResponsePreview_(r) {
   return {
-    source_uuid: r.source_uuid,
-    fecha_encuesta: r.fecha_encuesta,
-    submission_ts: r.submission_ts,
-    respondente_id: r.respondente_id,
-    nombre_completo: r.nombre_completo,
-    sexo: r.sexo,
-    edad: r.edad,
-    comunidad: r.comunidad,
-    tipo_artesania_principal: r.tipo_artesania_principal,
-    productos_principales: r.productos_principales,
-    principal_canal_venta: r.principal_canal_venta,
-    ingreso_artesania_banda: r.ingreso_artesania_banda,
-    participa_asociacion: r.participa_asociacion,
-    cantidad_fotos: r.cantidad_fotos,
-    gps_completo: r.gps_completo,
-    calidad_estado: r.calidad_estado,
-    calidad_flags_json: r.calidad_flags_json
+    source_uuid: clientValue_(r.source_uuid),
+    fecha_encuesta: clientValue_(r.fecha_encuesta),
+    submission_ts: clientValue_(r.submission_ts),
+    respondente_id: clientValue_(r.respondente_id),
+    nombre_completo: clientValue_(r.nombre_completo),
+    sexo: clientValue_(r.sexo),
+    edad: clientValue_(r.edad),
+    comunidad: clientValue_(r.comunidad),
+    tipo_artesania_principal: clientValue_(r.tipo_artesania_principal),
+    productos_principales: clientValue_(r.productos_principales),
+    principal_canal_venta: clientValue_(r.principal_canal_venta),
+    ingreso_artesania_banda: clientValue_(r.ingreso_artesania_banda),
+    participa_asociacion: clientValue_(r.participa_asociacion),
+    cantidad_fotos: clientValue_(r.cantidad_fotos),
+    gps_completo: clientValue_(r.gps_completo),
+    calidad_estado: clientValue_(r.calidad_estado),
+    calidad_flags_json: clientValue_(r.calidad_flags_json)
   };
 }
 
 function listResponses(sessionToken, filters, limit) {
   var actor = requireRole_(sessionToken, ['admin','editor','viewer']);
   limit = Math.min(Number(limit || 100), 1000);
-  var rows = filterResponseRows_(getRowsAsObjects_(APP_CFG.SHEETS.RESPONSES), filters || {});
+  var readLimit = Math.max(limit, Math.min(Number(getConfigValue_('dashboard_row_limit', 5000) || 5000), 20000));
+  var rows = filterResponseRows_(getRowsAsObjectsLimited_(APP_CFG.SHEETS.RESPONSES, readLimit), filters || {});
   rows.sort(function(a,b){ return String(b.submission_ts || '').localeCompare(String(a.submission_ts || '')); });
   auditLog_(actor.username, actor.role, 'list_responses', 'responses', '', { count: rows.length, limit: limit });
   return { rows: rows.slice(0, limit).map(publicResponsePreview_), total: rows.length, limited: rows.length > limit };

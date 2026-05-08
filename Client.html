@@ -313,7 +313,9 @@
     if(state.dashboardError) return '<div class="card error"><h3>Error al cargar el dashboard</h3><p>'+esc(state.dashboardError)+'</p><div class="toolbar" style="margin-top:12px"><button class="btn" id="retryDash">Reintentar</button></div></div>';
     if(!state.dashboard) return '<div class="card"><span class="loader"></span> Cargando dashboard...</div>';
     const k=state.dashboard.kpi, c=state.dashboard.charts;
-    return filtersView_()+ '<div class="grid cols-4"><div class="kpi"><span>Entrevistas</span><b>'+n(k.total)+'</b></div><div class="kpi"><span>Mujeres</span><b>'+pct(k.pctMujeres)+'</b></div><div class="kpi"><span>Pertenencia indígena</span><b>'+pct(k.pctIndigena)+'</b></div><div class="kpi"><span>GPS capturado</span><b>'+pct(k.pctGps)+'</b></div><div class="kpi"><span>Edad promedio</span><b>'+esc(k.edadPromedio||'—')+'</b></div><div class="kpi"><span>Tamaño hogar prom.</span><b>'+esc(k.tamanoHogarPromedio||'—')+'</b></div><div class="kpi"><span>Venta digital</span><b>'+pct(k.pctVentaDigital)+'</b></div><div class="kpi"><span>Fotos cargadas</span><b>'+n(k.fotos)+'</b></div></div>'+ 
+    const meta=state.dashboard.meta||{};
+    const metaHtml=meta.limited?'<p class="small muted">Vista limitada a las últimas '+n(meta.rowLimit)+' respuestas para mantener carga rápida.</p>':'';
+    return filtersView_()+metaHtml+'<div class="grid cols-4"><div class="kpi"><span>Entrevistas</span><b>'+n(k.total)+'</b></div><div class="kpi"><span>Mujeres</span><b>'+pct(k.pctMujeres)+'</b></div><div class="kpi"><span>Pertenencia indígena</span><b>'+pct(k.pctIndigena)+'</b></div><div class="kpi"><span>GPS capturado</span><b>'+pct(k.pctGps)+'</b></div><div class="kpi"><span>Edad promedio</span><b>'+esc(k.edadPromedio||'—')+'</b></div><div class="kpi"><span>Tamaño hogar prom.</span><b>'+esc(k.tamanoHogarPromedio||'—')+'</b></div><div class="kpi"><span>Venta digital</span><b>'+pct(k.pctVentaDigital)+'</b></div><div class="kpi"><span>Fotos cargadas</span><b>'+n(k.fotos)+'</b></div></div>'+
       '<div class="grid cols-2"><div class="card"><h3>Tipos de artesanía</h3>'+barList_(c.tipo)+'</div><div class="card"><h3>Canales principales de venta</h3>'+barList_(c.canal)+'</div><div class="card"><h3>Prioridad de apoyo</h3>'+barList_(c.prioridad)+'</div><div class="card"><h3>Ingreso artesanal declarado</h3>'+barList_(c.ingreso)+'</div><div class="card"><h3>Comunidades/localidades</h3>'+barList_(c.comunidad)+'</div><div class="card"><h3>Calidad de registros</h3>'+barList_(c.calidad)+'</div></div>'+
       '<div class="card"><h3>Últimas entrevistas</h3>'+table_(state.dashboard.rowsPreview)+'</div>';
   }
@@ -330,6 +332,7 @@
   async function loadDashboard_(){
     if(!state.session)return;
     state.dashboardError=null;
+    if(state.tab==='dashboard' && !state.dashboard) render();
     try{
       state.dashboard=await callServer('getDashboardSummary',sessionToken(),state.filters||{});
     }catch(err){

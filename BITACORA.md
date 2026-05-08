@@ -311,3 +311,50 @@ Despues de hacer login en la Web App, ir al panel Admin y ejecutar **"Sincroniza
 - La Web App publica ya sirve una version que no depende de que la hoja `USUARIOS` este vacia ni del boton `Restablecer usuarios`.
 - En el primer flujo de autenticacion, si faltan los usuarios Paracel, el backend debe agregarlos automaticamente y hashear sus claves temporales.
 - Siguiente prueba funcional recomendada: abrir `/exec` en incognito e ingresar `diego.meza / 123456`. Si no entra, revisar consola F12 y capturar el error exacto.
+
+## 2026-05-08 - Correccion foco tablero: carga de datos y serializacion GAS
+
+### Reporte recibido
+- El problema no es el logueo sino la carga de datos al tablero.
+- La consola del navegador muestra principalmente advertencias del contenedor Google (`Unrecognized feature`, favicon 404, password fuera de `form`) y cambios de estado `warden` BUSY/IDLE, sin un error JavaScript claro de la app.
+
+### Diagnostico aplicado
+- Se reviso `Client.html`: el tablero llama `getDashboardSummary(sessionToken, filters)` y queda mostrando `Cargando dashboard...` si no recibe una respuesta util.
+- Se reviso `Admin.gs`: `getDashboardSummary()` leia toda la hoja `RESPUESTAS` con `getRowsAsObjects_()` y devolvia `rowsPreview` con valores crudos de Sheets.
+- Riesgo probable identificado: si `fecha_encuesta`, `submission_ts` u otros campos llegan como objetos `Date`, `google.script.run` puede fallar al serializar la respuesta aunque la funcion haya calculado los KPIs. Esto afecta especialmente a `rowsPreview` y `listResponses()`.
+- Riesgo adicional: lectura completa de `RESPUESTAS` puede ser lenta o inestable si la hoja conserva muchas filas/columnas.
+
+### Correcciones locales aplicadas
+- `Utils.gs`:
+  - Agregado `getRowsAsObjectsLimited_(sheetName, maxRows)` para leer solo una ventana controlada de filas recientes.
+  - Agregado `clientValue_(value)` para convertir `Date` a ISO string y objetos a JSON antes de devolverlos al cliente.
+  - Corregido `asNumber_()` para no transformar decimales con punto (`6.7`) en `67`.
+- `Admin.gs`:
+  - `getDashboardSummary()` ahora usa `dashboard_row_limit` con tope duro de 20.000 filas.
+  - `rowsPreview` pasa por `clientValue_()` campo por campo.
+  - La respuesta incluye `meta.loadedRows`, `meta.rowLimit` y `meta.limited`.
+  - `listResponses()` tambien usa lectura limitada y sanitizacion de filas publicas.
+- `Client.html`:
+  - El tablero muestra una nota si la vista esta limitada por rendimiento.
+  - `loadDashboard_()` fuerza render de estado de carga cuando el usuario entra al tablero.
+
+### Validacion local
+- `Admin.gs`, `Utils.gs` y el script embebido en `Client.html` pasaron `node --check` por stdin sin errores.
+
+### Pendiente de liberacion
+1. `npx clasp push -f`.
+2. Crear nueva version GAS con descripcion de fix de tablero.
+3. Actualizar deployment publico.
+4. Verificar `/exec` HTTP 200 y confirmar `npx clasp deployments`.
+
+### Liberacion ejecutada
+- `npx clasp push -f`: exitoso, 13 archivos subidos.
+- `npx clasp version "v18 - corregir carga tablero y serializacion de fechas"`: creada version 18.
+- `npx clasp deploy -i AKfycbwTpwf0GoONoPOEJnE-IxoDiYofcB54c_aQBoPlvaCrjYcJ_RNhdxqJC9dEClZH0Kk -V 18`: deployment publico actualizado.
+- `npx clasp deployments`: confirma `AKfycbwTpwf0GoONoPOEJnE-IxoDiYofcB54c_aQBoPlvaCrjYcJ_RNhdxqJC9dEClZH0Kk @18 - v18 - corregir carga tablero y serializacion de fechas`.
+- Verificacion HTTP de `/exec`: status `200`.
+
+### Estado tras la liberacion
+- El tablero ya no devuelve fechas/objetos crudos desde `rowsPreview`, reduciendo el riesgo de falla de serializacion en `google.script.run`.
+- La lectura del tablero queda limitada por `dashboard_row_limit` para evitar esperas largas por hojas grandes.
+- Si el tablero aun no carga en navegador, el siguiente dato necesario es el mensaje visible dentro de la tarjeta `Error al cargar el dashboard` o el error exacto tras esperar el timeout de la llamada.

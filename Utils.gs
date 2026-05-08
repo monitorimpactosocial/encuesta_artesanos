@@ -43,7 +43,11 @@ function asBool_(value) {
 
 function asNumber_(value) {
   if (value === null || value === undefined || value === '') return null;
-  var n = Number(String(value).replace(/\./g, '').replace(',', '.'));
+  if (typeof value === 'number') return isFinite(value) ? value : null;
+  var s = String(value).trim();
+  if (/^\d{1,3}(\.\d{3})+(,\d+)?$/.test(s)) s = s.replace(/\./g, '').replace(',', '.');
+  else if (/^\d+,\d+$/.test(s)) s = s.replace(',', '.');
+  var n = Number(s);
   return isFinite(n) ? n : null;
 }
 
@@ -116,6 +120,33 @@ function getRowsAsObjects_(sheetName) {
     headers.forEach(function(h, i) { obj[h] = row[i]; });
     return obj;
   });
+}
+
+function getRowsAsObjectsLimited_(sheetName, maxRows) {
+  var sh = getOrCreateSheet_(sheetName);
+  var lastRow = sh.getLastRow();
+  var lastCol = sh.getLastColumn();
+  if (lastRow < 2 || lastCol < 1) return [];
+  maxRows = Math.max(1, Number(maxRows || 5000));
+  var firstDataRow = Math.max(2, lastRow - maxRows + 1);
+  var numRows = lastRow - firstDataRow + 1;
+  var headers = sh.getRange(1, 1, 1, lastCol).getValues()[0].map(normalizeText_);
+  var values = sh.getRange(firstDataRow, 1, numRows, lastCol).getValues();
+  return values.map(function(row, idx) {
+    var obj = { __rowNum: firstDataRow + idx };
+    headers.forEach(function(h, i) { obj[h] = row[i]; });
+    return obj;
+  });
+}
+
+function clientValue_(value) {
+  if (value === null || value === undefined) return '';
+  if (Object.prototype.toString.call(value) === '[object Date]') {
+    if (isNaN(value.getTime())) return '';
+    return Utilities.formatDate(value, APP_CFG.TIMEZONE, "yyyy-MM-dd'T'HH:mm:ssXXX");
+  }
+  if (typeof value === 'number' || typeof value === 'boolean' || typeof value === 'string') return value;
+  return JSON.stringify(value);
 }
 
 function appendObject_(sheetName, obj, preferredHeaders) {
