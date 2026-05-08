@@ -581,6 +581,17 @@ Despues de hacer login en la Web App, ir al panel Admin y ejecutar **"Sincroniza
 
 ### Liberacion ejecutada
 - `npx clasp push -f`: exitoso, 14 archivos subidos.
+- `npx clasp version "v27 - aclarar tiempos de relevamiento"`: creada version 27.
+- `npx clasp deploy -i AKfycbwTpwf0GoONoPOEJnE-IxoDiYofcB54c_aQBoPlvaCrjYcJ_RNhdxqJC9dEClZH0Kk -V 27`: deployment publico actualizado.
+- `npx clasp deployments`: confirma `AKfycbwTpwf0GoONoPOEJnE-IxoDiYofcB54c_aQBoPlvaCrjYcJ_RNhdxqJC9dEClZH0Kk @27 - v27 - aclarar tiempos de relevamiento`.
+- Verificacion HTTP de `/exec`: status `200`.
+
+### Estado operativo
+- El panel de tiempos diferencia explicitamente esfuerzo total y duracion calendario.
+- La duracion promedio de cada encuesta queda editable como parametro de simulacion.
+
+### Liberacion ejecutada
+- `npx clasp push -f`: exitoso, 14 archivos subidos.
 - `npx clasp version "v26 - ordenar mapa y simular tiempos"`: creada version 26.
 - `npx clasp deploy -i AKfycbwTpwf0GoONoPOEJnE-IxoDiYofcB54c_aQBoPlvaCrjYcJ_RNhdxqJC9dEClZH0Kk -V 26`: deployment publico actualizado.
 - `npx clasp deployments`: confirma `AKfycbwTpwf0GoONoPOEJnE-IxoDiYofcB54c_aQBoPlvaCrjYcJ_RNhdxqJC9dEClZH0Kk @26 - v26 - ordenar mapa y simular tiempos`.
@@ -590,6 +601,36 @@ Despues de hacer login en la Web App, ir al panel Admin y ejecutar **"Sincroniza
 - La vista `Mapa territorial` queda reordenada con el mapa como superficie principal y el panel lateral como flujo de decision.
 - El panel de tiempos muestra minutos, horas y dias.
 - Se pueden ensayar escenarios modificando encuestadores, horas de trabajo por dia y minutos por vivienda.
+
+## 2026-05-08 - Clarificacion de tiempos de relevamiento
+
+### Problema reportado
+- El panel de tiempos no dejaba suficientemente claro si el valor mostrado era la duracion completa del relevamiento o el esfuerzo total acumulado.
+- Se pidio mejorar la presentacion y permitir alterar claramente la duracion promedio de cada encuesta para simular escenarios.
+
+### Cambios aplicados
+- `Client.html`:
+  - Titulo actualizado a `Duracion estimada del relevamiento`.
+  - Texto explicativo nuevo:
+    - `Esfuerzo total` = suma de todo el trabajo de campo.
+    - `Duracion calendario` = dias estimados para terminar trabajando en paralelo.
+  - Etiquetas aclaradas:
+    - `duracion promedio por encuesta`,
+    - `esfuerzo total del relevamiento`,
+    - `duracion calendario con asignacion actual`,
+    - `duracion calendario del escenario simulado`.
+  - Campo de simulacion renombrado a `Duracion promedio de cada encuesta (min)`.
+  - Boton renombrado a `Recalcular con datos reales`.
+
+### Validacion local
+- `Client.html`: script embebido validado con `node --check`.
+
+### Pendiente de liberacion
+1. `npx clasp push -f`.
+2. Crear nueva version GAS.
+3. Actualizar deployment publico.
+4. Verificar `/exec` HTTP 200.
+5. Commit/push Git.
 
 ### Liberacion ejecutada
 - `npx clasp push -f`: exitoso, 14 archivos subidos.
