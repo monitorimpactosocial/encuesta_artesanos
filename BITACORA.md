@@ -1,5 +1,46 @@
 # Bitacora operativa - Encuesta Artesanos Isla Hermosa
 
+## 2026-05-11 - Fecha de nacimiento prioritaria y edad solo si no recuerda
+
+### Pedido recibido
+- Preguntar fecha de nacimiento.
+- Si la persona no la declara o no la recuerda, entonces preguntar edad en años cumplidos.
+- Registrar que la persona no recuerda/no declara su fecha de nacimiento.
+
+### Cambios aplicados
+- `Seed.gs`:
+  - En identificacion, `fecha_nacimiento` pasa antes que edad.
+  - Se agrega `fecha_nacimiento_no_recuerda`.
+  - `edad` queda visible solo cuando `fecha_nacimiento_no_recuerda = Sí`.
+  - El texto de ayuda aclara que primero se pregunta fecha y solo despues edad si no recuerda/no declara.
+- `Client.html`:
+  - Oculta `edad` de la persona entrevistada salvo que marque que no recuerda/no declara fecha de nacimiento.
+  - La validacion exige fecha de nacimiento o marca `No recuerda/no declara`; si marca que no recuerda, exige edad en años cumplidos.
+  - En integrantes del hogar se agrega boton `No recuerda fecha`; si se activa, la fecha se borra y la edad queda editable.
+  - Si se informa fecha de nacimiento del integrante, la edad se calcula automaticamente y queda no editable.
+- `Survey.gs`:
+  - Si hay fecha de nacimiento y no hay edad manual, deriva `edad`.
+  - Guarda `fecha_nacimiento_no_recuerda = SI/NO` segun corresponda.
+  - `edad_grupo` se calcula con la edad derivada o declarada.
+
+### Verificacion local
+- Script de `Client.html` extraido desde `<script>`: `node --check --input-type=commonjs` sin errores.
+- `Seed.gs`: `node --check --input-type=commonjs` sin errores.
+- `Survey.gs`: `node --check --input-type=commonjs` sin errores.
+
+### Pendiente inmediato
+- Resuelto en esta misma pasada.
+
+### Publicacion y verificacion
+- `npx clasp push -f`: exitoso, 14 archivos subidos.
+- `npx clasp version "v33 - fecha nacimiento prioritaria"`: version 33 creada.
+- `npx clasp deploy -i AKfycbwTpwf0GoONoPOEJnE-IxoDiYofcB54c_aQBoPlvaCrjYcJ_RNhdxqJC9dEClZH0Kk -V 33 -d "v33 - fecha nacimiento prioritaria"`: deployment publico actualizado a `@33`.
+- Verificacion viva con POST a `/exec` y `getSurveySchema`:
+  - encontrado `fecha_nacimiento_no_recuerda`.
+  - encontrado `Fecha de nacimiento`.
+  - encontrado `No recuerda o no declara`.
+  - encontrado `edad` y ayuda `Completar solo cuando no recuerda`.
+
 ## 2026-05-11 - Consentimiento como fin obligatorio de encuesta
 
 ### Pedido recibido

@@ -237,10 +237,14 @@ function ageFromDate_(dateStr) {
 
 function cleanAndDerive_(row) {
   var out = {};
+  if (!row.edad && normalizeKey_(row.fecha_nacimiento_no_recuerda) !== 'si' && row.fecha_nacimiento) {
+    out.edad = ageFromDate_(row.fecha_nacimiento);
+  }
+  out.fecha_nacimiento_no_recuerda = normalizeKey_(row.fecha_nacimiento_no_recuerda) === 'si' ? 'SI' : (row.fecha_nacimiento ? 'NO' : row.fecha_nacimiento_no_recuerda);
   out.nombre_completo = normalizePersonName_(row.nombre_completo_raw || row.nombre_completo);
   out.cedula = normalizeDigits_(row.cedula_raw || row.cedula);
   out.respondente_id = out.cedula ? ('CI_' + out.cedula) : ('ART_' + normalizeKey_(out.nombre_completo).slice(0, 18) + '_' + String(row.source_uuid || '').slice(0, 8));
-  out.edad_grupo = edadGrupo_(row.edad);
+  out.edad_grupo = edadGrupo_(out.edad || row.edad);
 
   var roster = parseJsonSafe_(row.miembros_hogar_json, []);
   if (Array.isArray(roster) && roster.length) {

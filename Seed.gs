@@ -46,8 +46,9 @@ function getQuestionnaireSeed_() {
   Q.push(q_(1,s[1],s[2],1,'nombre_completo_raw','Nombre y apellido declarado','text',true,null,null,true,false,''));
   Q.push(q_(1,s[1],s[2],2,'cedula_raw','Cédula de identidad declarada','text',false,null,null,true,false,''));
   Q.push(q_(1,s[1],s[2],3,'sexo','Sexo','buttons',true,{catalog:'sexo'},null,false,true,''));
-  Q.push(q_(1,s[1],s[2],4,'edad','Edad en años cumplidos','number',true,null,null,false,true,''));
-  Q.push(q_(1,s[1],s[2],5,'fecha_nacimiento','Fecha de nacimiento','date',false,null,null,false,false,''));
+  Q.push(q_(1,s[1],s[2],4,'fecha_nacimiento','Fecha de nacimiento','date',false,null,null,false,false,'Preguntar primero la fecha de nacimiento. Si la persona no recuerda o no declara la fecha, marcarlo en la pregunta siguiente y registrar edad en años cumplidos.'));
+  Q.push(q_(1,s[1],s[2],4.1,'fecha_nacimiento_no_recuerda','¿No recuerda o no declara su fecha de nacimiento?','buttons',false,{catalog:'si_no'},null,false,true,'Marcar Sí solo si no puede informar la fecha de nacimiento.'));
+  Q.push(q_(1,s[1],s[2],4.2,'edad','Edad en años cumplidos','number',false,null,{field:'fecha_nacimiento_no_recuerda',equals:'Sí'},false,true,'Completar solo cuando no recuerda o no declara la fecha de nacimiento.'));
   Q.push(q_(1,s[1],s[2],6,'telefono','Teléfono / WhatsApp','text',false,null,null,true,false,''));
   Q.push(q_(1,s[1],s[2],7,'correo','Correo electrónico','text',false,null,null,true,false,''));
   Q.push(q_(1,s[1],s[2],8,'departamento','Departamento','buttons',true,{catalog:'departamento'},null,false,true,''));
