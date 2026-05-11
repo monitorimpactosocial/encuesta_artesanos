@@ -1,5 +1,38 @@
 # Bitacora operativa - Encuesta Artesanos Isla Hermosa
 
+## 2026-05-11 - Roster de hogar: parentesco guiado, discapacidad clara y conteos derivados
+
+### Pedido recibido
+- `Parentesco` debe ser lista desplegable.
+- `Disc. sí/no` no se entiende; mejorar la redaccion.
+- No tiene sentido preguntar cantidad de mujeres en el hogar si antes ya se registro uno a uno a los integrantes, con sexo y edad.
+
+### Cambios aplicados
+- `Client.html`:
+  - `parentesco` del roster pasa de campo libre a lista desplegable con opciones frecuentes: jefe/a de hogar, conyuge/pareja, hijo/a, padre/madre, hermano/a, nieto/a, otro pariente, no pariente, etc.
+  - Botones de discapacidad del integrante cambian de `Disc. sí` / `No` a `Tiene discapacidad` / `Sin discapacidad`.
+  - Se ocultan del formulario los campos redundantes `n_mujeres` y `n_hombres`, igual que ya se ocultaban los tramos de edad; siguen calculandose automaticamente desde el roster.
+- `Seed.gs`:
+  - `n_mujeres` y `n_hombres` quedan documentados como campos derivados automaticamente desde integrantes del hogar.
+
+### Verificacion local
+- Script de `Client.html` extraido desde `<script>`: `node --check --input-type=commonjs` sin errores.
+- `Seed.gs`: `node --check --input-type=commonjs` sin errores.
+- `Survey.gs`: `node --check --input-type=commonjs` sin errores.
+
+### Pendiente inmediato
+- Resuelto en esta misma pasada.
+
+### Publicacion y verificacion
+- `npx clasp push -f`: exitoso, 14 archivos subidos.
+- `npx clasp version "v35 - roster parentesco discapacidad conteos"`: version 35 creada.
+- `npx clasp deploy -i AKfycbwTpwf0GoONoPOEJnE-IxoDiYofcB54c_aQBoPlvaCrjYcJ_RNhdxqJC9dEClZH0Kk -V 35 -d "v35 - roster parentesco discapacidad conteos"`: deployment publico actualizado a `@35`.
+- Verificacion viva por descarga HTML de `/exec`:
+  - encontrado `Tiene discapacidad`.
+  - encontrado `Sin discapacidad`.
+  - encontrado `Conyuge o pareja`.
+  - encontrado `Jefe`.
+
 ## 2026-05-11 - Departamento fijo en Concepcion
 
 ### Pedido recibido

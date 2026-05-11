@@ -67,8 +67,8 @@ function getQuestionnaireSeed_() {
   s = ['2','hogar_vivienda','Composición del hogar, vivienda y servicios'];
   Q.push(q_(2,s[1],s[2],1,'miembros_hogar_json','Integrantes del hogar','roster',false,null,null,false,false,'Registrar parentesco, sexo, fecha de nacimiento y discapacidad. Las edades por tramo se calculan automaticamente.'));
   Q.push(q_(2,s[1],s[2],2,'total_miembros','Total de integrantes del hogar','number',false,null,null,false,true,'Se calcula automáticamente si se usa el roster.'));
-  Q.push(q_(2,s[1],s[2],3,'n_mujeres','Cantidad de mujeres en el hogar','number',false,null,null,false,true,''));
-  Q.push(q_(2,s[1],s[2],4,'n_hombres','Cantidad de hombres en el hogar','number',false,null,null,false,true,''));
+  Q.push(q_(2,s[1],s[2],3,'n_mujeres','Cantidad de mujeres en el hogar','number',false,null,null,false,true,'Campo derivado automaticamente desde integrantes del hogar. No cargar manualmente en campo.'));
+  Q.push(q_(2,s[1],s[2],4,'n_hombres','Cantidad de hombres en el hogar','number',false,null,null,false,true,'Campo derivado automaticamente desde integrantes del hogar. No cargar manualmente en campo.'));
   Q.push(q_(2,s[1],s[2],5,'ninos_0_14','Personas de 0 a 14 años','number',false,null,null,false,true,''));
   Q.push(q_(2,s[1],s[2],6,'jovenes_15_29','Personas de 15 a 29 años','number',false,null,null,false,true,''));
   Q.push(q_(2,s[1],s[2],7,'adultos_30_64','Personas de 30 a 64 años','number',false,null,null,false,true,''));
