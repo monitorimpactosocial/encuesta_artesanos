@@ -1,5 +1,37 @@
 # Bitacora operativa - Encuesta Artesanos Isla Hermosa
 
+## 2026-05-11 - Departamento fijo en Concepcion
+
+### Pedido recibido
+- El departamento no puede cambiar; debe establecerse en Concepcion.
+
+### Cambios aplicados
+- `Seed.gs`:
+  - `departamento` pasa de botones a campo `locked`.
+  - El catalogo `departamento` queda reducido a `Concepción`.
+  - Texto de ayuda: departamento fijo del operativo, no modificar en campo.
+- `Client.html`:
+  - `seedDefaults_()` fuerza siempre `state.values.departamento = 'Concepción'`, incluso si venia otro valor en un borrador local.
+  - `lockedDefault_()` devuelve `Concepción` para el campo bloqueado.
+  - Al iniciar encuesta desde una vivienda del mapa tambien se fuerza `departamento = Concepción`.
+
+### Verificacion local
+- Script de `Client.html` extraido desde `<script>`: `node --check --input-type=commonjs` sin errores.
+- `Seed.gs`: `node --check --input-type=commonjs` sin errores.
+- `Survey.gs`: `node --check --input-type=commonjs` sin errores.
+
+### Pendiente inmediato
+- Resuelto en esta misma pasada.
+
+### Publicacion y verificacion
+- `npx clasp push -f`: exitoso, 14 archivos subidos.
+- `npx clasp version "v34 - departamento fijo concepcion"`: version 34 creada.
+- `npx clasp deploy -i AKfycbwTpwf0GoONoPOEJnE-IxoDiYofcB54c_aQBoPlvaCrjYcJ_RNhdxqJC9dEClZH0Kk -V 34 -d "v34 - departamento fijo concepcion"`: deployment publico actualizado a `@34`.
+- Verificacion viva con POST a `/exec` y `getSurveySchema`:
+  - encontrado `field_name = departamento`.
+  - encontrado `input_type = locked`.
+  - encontrados textos `Departamento fijo`, `Concepci` y `locked` en el esquema publicado.
+
 ## 2026-05-11 - Fecha de nacimiento prioritaria y edad solo si no recuerda
 
 ### Pedido recibido

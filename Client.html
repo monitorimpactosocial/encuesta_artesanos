@@ -81,7 +81,7 @@
   function seedDefaults_(){
     if(!state.values.fecha_encuesta) state.values.fecha_encuesta=today();
     if(!state.values.comunidad) state.values.comunidad='Isla Hermosa / Isla Tuyu';
-    if(!state.values.departamento) state.values.departamento='Concepción';
+    state.values.departamento='Concepción';
     state.values.distrito='Paso Barreto';
     if(!state.values.barrio_localidad) state.values.barrio_localidad='ISLA HERMOSA / ISLA TUYU';
     if(!state.values.edicion && state.bootstrap) state.values.edicion=state.bootstrap.app.activeEdition;
@@ -275,6 +275,7 @@
     return '<div class="buttons" data-buttons="'+esc(field)+'">'+(options||[]).map(o=>'<button type="button" class="choice '+(String(val)===String(o.value)?'active':'')+'" data-choice="'+esc(o.value)+'">'+esc(o.label)+'</button>').join('')+'</div>';
   }
   function lockedDefault_(field){
+    if(field==='departamento') return 'Concepción';
     if(field==='distrito') return 'Paso Barreto';
     return '';
   }
@@ -784,6 +785,7 @@
     state.values.vivienda_mapeada_georef_origen='mapa_territorial_cache_local';
     state.values.vivienda_asignada_a=p.assigned_to||((state.fieldMap.currentUser||{}).username||'');
     if(!state.values.comunidad) state.values.comunidad='Isla Hermosa / Isla Tuyu';
+    state.values.departamento='Concepción';
     state.values.distrito='Paso Barreto';
     if(!state.values.barrio_localidad) state.values.barrio_localidad='ISLA HERMOSA / ISLA TUYU';
     saveDraft();

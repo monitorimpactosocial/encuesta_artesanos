@@ -51,7 +51,7 @@ function getQuestionnaireSeed_() {
   Q.push(q_(1,s[1],s[2],4.2,'edad','Edad en años cumplidos','number',false,null,{field:'fecha_nacimiento_no_recuerda',equals:'Sí'},false,true,'Completar solo cuando no recuerda o no declara la fecha de nacimiento.'));
   Q.push(q_(1,s[1],s[2],6,'telefono','Teléfono / WhatsApp','text',false,null,null,true,false,''));
   Q.push(q_(1,s[1],s[2],7,'correo','Correo electrónico','text',false,null,null,true,false,''));
-  Q.push(q_(1,s[1],s[2],8,'departamento','Departamento','buttons',true,{catalog:'departamento'},null,false,true,''));
+  Q.push(q_(1,s[1],s[2],8,'departamento','Departamento','locked',true,{catalog:'departamento'},null,false,true,'Departamento fijo del operativo: Concepción. No modificar en campo.'));
   Q.push(q_(1,s[1],s[2],9,'distrito','Distrito','locked',true,{catalog:'distrito'},null,false,true,'Distrito fijo del operativo: Paso Barreto. No modificar en campo.'));
   Q.push(q_(1,s[1],s[2],10,'barrio_localidad','Barrio / localidad del operativo','buttons',true,{catalog:'barrio_operativo'},null,false,true,'Usar Isla Hermosa / Isla Tuyu como referencia territorial del relevamiento.'));
   Q.push(q_(1,s[1],s[2],11,'direccion_referencia','Referencia de ubicación de la vivienda o taller','textarea',false,null,null,true,false,''));
@@ -215,7 +215,7 @@ function getCatalogSeed_() {
   ['Isla Hermosa / Isla Tuyu','Isla Hermosa','Isla Tuyu','Otra localidad'].forEach(function(x,i){ add('comunidad', normalizeKey_(x), x, i+1); });
   ['ISLA HERMOSA / ISLA TUYU','ISLA HERMOSA','ISLA TUYU'].forEach(function(x,i){ add('barrio_operativo', normalizeKey_(x), x, i+1); });
   ['Persona artesana','Familiar informante','Referente comunitario','Otro informante'].forEach(function(x,i){ add('tipo_informante', normalizeKey_(x), x, i+1); });
-  ['Concepción','Amambay','San Pedro','Otro'].forEach(function(x,i){ add('departamento', normalizeKey_(x), x, i+1); });
+  ['Concepción'].forEach(function(x,i){ add('departamento', normalizeKey_(x), x, i+1); });
   ['Paso Barreto'].forEach(function(x,i){ add('distrito', normalizeKey_(x), x, i+1); });
   ['Soltero/a','Casado/a','Unión libre','Separado/a o divorciado/a','Viudo/a','No responde'].forEach(function(x,i){ add('estado_civil', normalizeKey_(x), x, i+1); });
   ['Paraguaya','Brasileña','Argentina','Otra'].forEach(function(x,i){ add('nacionalidad', normalizeKey_(x), x, i+1); });
