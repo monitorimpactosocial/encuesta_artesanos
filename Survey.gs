@@ -14,7 +14,7 @@ function getCatalogMap_() {
 }
 
 function getSurveySchema() {
-  var SCHEMA_CACHE_KEY = 'artesanos_schema_v2';
+  var SCHEMA_CACHE_KEY = 'artesanos_schema_v3';
   var sc = CacheService.getScriptCache();
   var cachedJson = sc.get(SCHEMA_CACHE_KEY);
   if (cachedJson) { try { return JSON.parse(cachedJson); } catch(e) {} }
@@ -225,6 +225,16 @@ function computeDurationMinutes_(startTs, endTs) {
   return Math.round(((b - a) / 60000) * 10) / 10;
 }
 
+function ageFromDate_(dateStr) {
+  var d = new Date(normalizeText_(dateStr) + 'T00:00:00');
+  if (!isFinite(d.getTime())) return null;
+  var t = new Date();
+  var age = t.getFullYear() - d.getFullYear();
+  var m = t.getMonth() - d.getMonth();
+  if (m < 0 || (m === 0 && t.getDate() < d.getDate())) age--;
+  return age >= 0 && age < 120 ? age : null;
+}
+
 function cleanAndDerive_(row) {
   var out = {};
   out.nombre_completo = normalizePersonName_(row.nombre_completo_raw || row.nombre_completo);
@@ -238,6 +248,7 @@ function cleanAndDerive_(row) {
     roster.forEach(function(m) {
       var sx = normalizeKey_(m.sexo || m.genero || '');
       var e = asNumber_(m.edad);
+      if (e === null && m.fecha_nacimiento) e = ageFromDate_(m.fecha_nacimiento);
       if (sx === 'femenino' || sx === 'mujer') t.mujeres++;
       if (sx === 'masculino' || sx === 'hombre') t.hombres++;
       if (e !== null) {
@@ -284,7 +295,7 @@ function qualityFlags_(row) {
   if (dur !== null && dur < 5) flags.push({ campo: 'duracion_min', tipo: 'muy_baja', detalle: 'Duración menor a 5 minutos.' });
   if (dur !== null && dur > 240) flags.push({ campo: 'duracion_min', tipo: 'muy_alta', detalle: 'Duración superior a 240 minutos.' });
   if (!row.gps_encuesta_lat || !row.gps_encuesta_lng) flags.push({ campo: 'gps_encuesta', tipo: 'faltante', detalle: 'No se capturó GPS de la entrevista.' });
-  if (!row.tipo_artesania_principal) flags.push({ campo: 'tipo_artesania_principal', tipo: 'faltante', detalle: 'No se indicó tipo principal de artesanía.' });
+  if (normalizeKey_(row.hogar_tiene_artesano) !== 'no' && !row.tipo_artesania_principal) flags.push({ campo: 'tipo_artesania_principal', tipo: 'faltante', detalle: 'No se indicó tipo principal de artesanía.' });
   if (normalizeKey_(row.pertenece_comunidad_indigena) === 'no' && row.etnia) flags.push({ campo: 'etnia', tipo: 'consistencia', detalle: 'Tiene etnia informada, pero declara no pertenecer a comunidad indígena.' });
   if (normalizeKey_(row.consentimiento_informado) !== 'si') flags.push({ campo: 'consentimiento_informado', tipo: 'critico', detalle: 'Consentimiento no afirmativo.' });
   if (asNumber_(row.cantidad_fotos) === 0) flags.push({ campo: 'fotos', tipo: 'sin_fotos', detalle: 'No se adjuntó ninguna foto.' });

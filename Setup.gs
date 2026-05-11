@@ -66,6 +66,7 @@ function getResponseHeaders_() {
     'gps_taller_lat','gps_taller_lng','gps_taller_accuracy','gps_taller_ts',
     'audio_url','audio_duration_sec',
     'vivienda_mapeada_id','vivienda_mapeada_n','vivienda_mapeada_lat','vivienda_mapeada_lng',
+    'vivienda_mapeada_geojson','vivienda_mapeada_georef_origen',
     'vivienda_asignada_a','vivienda_plan_estado'
   ];
   APP_CFG.PHOTO_FIELDS.forEach(function(f) {
@@ -86,8 +87,26 @@ function getResponseHeaders_() {
     'cantidad_fotos','gps_completo','calidad_estado','calidad_flags_json','created_by','created_at','updated_at'
   ];
   var all = meta.slice();
-  fields.concat(derived).forEach(function(h) { if (all.indexOf(h) < 0) all.push(h); });
+  fields.concat(getOtherDetailHeaders_(qRows)).concat(derived).forEach(function(h) { if (all.indexOf(h) < 0) all.push(h); });
   return all;
+}
+
+function getOtherDetailHeaders_(qRows) {
+  var out = [];
+  (qRows || []).forEach(function(q) {
+    var f = normalizeText_(q.field_name);
+    if (!f) return;
+    var opt = parseJsonSafe_(q.options_json, null);
+    if (opt && opt.catalog) {
+      out.push(f + '_otro_detalle');
+    } else if (Array.isArray(opt)) {
+      for (var i = 0; i < opt.length; i++) {
+        var label = normalizeText_(typeof opt[i] === 'object' ? (opt[i].label || opt[i].value) : opt[i]);
+        if (/^otr[ao]/i.test(label)) { out.push(f + '_otro_detalle'); break; }
+      }
+    }
+  });
+  return out;
 }
 
 function getAnalyticHeaders_(responseHeaders) {

@@ -40,6 +40,7 @@ function getQuestionnaireSeed_() {
   Q.push(q_(0,s[1],s[2],7,'segmento_operativo','Segmento operativo / recorrido','text',false,null,null,false,true,''));
   Q.push(q_(0,s[1],s[2],8,'tipo_informante','Tipo de informante','buttons',true,{catalog:'tipo_informante'},null,false,true,''));
   Q.push(q_(0,s[1],s[2],9,'consentimiento_informado','¿Acepta participar voluntariamente?','buttons',true,{catalog:'si_no'},null,false,true,'Debe leerse el consentimiento antes de continuar.'));
+  Q.push(q_(0,s[1],s[2],10,'hogar_tiene_artesano','En este hogar, ¿hay alguna persona que actualmente realiza artesanias?','buttons',true,{catalog:'si_no'},null,false,true,'Si la respuesta es No, la encuesta continua y se relevan posibles interesados o capacidades para trabajar en artesania.'));
 
   s = ['1','identificacion','Identificación de la persona artesana'];
   Q.push(q_(1,s[1],s[2],1,'nombre_completo_raw','Nombre y apellido declarado','text',true,null,null,true,false,''));
@@ -49,9 +50,9 @@ function getQuestionnaireSeed_() {
   Q.push(q_(1,s[1],s[2],5,'fecha_nacimiento','Fecha de nacimiento','date',false,null,null,false,false,''));
   Q.push(q_(1,s[1],s[2],6,'telefono','Teléfono / WhatsApp','text',false,null,null,true,false,''));
   Q.push(q_(1,s[1],s[2],7,'correo','Correo electrónico','text',false,null,null,true,false,''));
-  Q.push(q_(1,s[1],s[2],8,'departamento','Departamento','select',true,{catalog:'departamento'},null,false,true,''));
-  Q.push(q_(1,s[1],s[2],9,'distrito','Distrito','select',true,{catalog:'distrito'},null,false,true,''));
-  Q.push(q_(1,s[1],s[2],10,'barrio_localidad','Barrio / compañía / localidad','text',true,null,null,false,true,''));
+  Q.push(q_(1,s[1],s[2],8,'departamento','Departamento','buttons',true,{catalog:'departamento'},null,false,true,''));
+  Q.push(q_(1,s[1],s[2],9,'distrito','Distrito','locked',true,{catalog:'distrito'},null,false,true,'Distrito fijo del operativo: Paso Barreto. No modificar en campo.'));
+  Q.push(q_(1,s[1],s[2],10,'barrio_localidad','Barrio / localidad del operativo','buttons',true,{catalog:'barrio_operativo'},null,false,true,'Usar Isla Hermosa / Isla Tuyu como referencia territorial del relevamiento.'));
   Q.push(q_(1,s[1],s[2],11,'direccion_referencia','Referencia de ubicación de la vivienda o taller','textarea',false,null,null,true,false,''));
   Q.push(q_(1,s[1],s[2],12,'nro_casa','Número de casa o lote','text',false,null,null,true,false,''));
   Q.push(q_(1,s[1],s[2],13,'jefatura_hogar','¿Es jefe/a de hogar?','buttons',false,{catalog:'si_no'},null,false,true,''));
@@ -63,7 +64,7 @@ function getQuestionnaireSeed_() {
   Q.push(q_(1,s[1],s[2],19,'observaciones_identificacion','Observaciones de identificación','textarea',false,null,null,true,false,''));
 
   s = ['2','hogar_vivienda','Composición del hogar, vivienda y servicios'];
-  Q.push(q_(2,s[1],s[2],1,'miembros_hogar_json','Integrantes del hogar','roster',false,null,null,false,false,'Registrar sexo, edad y parentesco de cada integrante.'));
+  Q.push(q_(2,s[1],s[2],1,'miembros_hogar_json','Integrantes del hogar','roster',false,null,null,false,false,'Registrar parentesco, sexo, fecha de nacimiento y discapacidad. Las edades por tramo se calculan automaticamente.'));
   Q.push(q_(2,s[1],s[2],2,'total_miembros','Total de integrantes del hogar','number',false,null,null,false,true,'Se calcula automáticamente si se usa el roster.'));
   Q.push(q_(2,s[1],s[2],3,'n_mujeres','Cantidad de mujeres en el hogar','number',false,null,null,false,true,''));
   Q.push(q_(2,s[1],s[2],4,'n_hombres','Cantidad de hombres en el hogar','number',false,null,null,false,true,''));
@@ -90,6 +91,8 @@ function getQuestionnaireSeed_() {
   Q.push(q_(3,s[1],s[2],2,'sabe_leer_escribir','¿Sabe leer y escribir?','buttons',false,{catalog:'si_no'},null,false,true,''));
   Q.push(q_(3,s[1],s[2],3,'asiste_estudia_actualmente','¿Asiste actualmente a una institución educativa o curso?','buttons',false,{catalog:'si_no'},null,false,true,''));
   Q.push(q_(3,s[1],s[2],4,'discapacidad_hogar','¿Hay personas con discapacidad en el hogar?','buttons',false,{catalog:'si_no'},null,false,true,''));
+  Q.push(q_(3,s[1],s[2],4.5,'tipo_discapacidad_hogar','Tipo de discapacidad presente en el hogar','checkbox_group',false,{catalog:'tipo_discapacidad'},{field:'discapacidad_hogar',equals:'Sí'},false,true,'Puede marcar mas de una opcion. Si selecciona Otro, detalle en el campo siguiente.'));
+  Q.push(q_(3,s[1],s[2],4.6,'tipo_discapacidad_hogar_otro','Especificar otro tipo de discapacidad','text',false,null,{field:'tipo_discapacidad_hogar',contains:'Otro'},false,true,''));
   Q.push(q_(3,s[1],s[2],5,'seguro_medico','Cobertura de salud principal','select',false,{catalog:'seguro_medico'},null,false,true,''));
   Q.push(q_(3,s[1],s[2],6,'acceso_salud','Lugar habitual de atención en salud','select',false,{catalog:'acceso_salud'},null,false,true,''));
   Q.push(q_(3,s[1],s[2],7,'dificultad_atencion_salud','Principal dificultad para atención de salud','select',false,{catalog:'dificultad_salud'},null,false,true,''));
@@ -97,6 +100,8 @@ function getQuestionnaireSeed_() {
   Q.push(q_(3,s[1],s[2],9,'tipo_subsidio','Programa(s) de subsidio o transferencia que recibe','checkbox_group',false,{catalog:'subsidio_estado'},{field:'recibe_subsidio',equals:'Sí'},false,true,'Puede marcar más de uno.'));
 
   s = ['4','actividad_artesanal','Actividad artesanal y capacidades productivas'];
+  Q.push(q_(4,s[1],s[2],0.5,'potenciales_interesados_artesania','Si actualmente no hay artesanos/as, ¿hay personas interesadas en aprender o trabajar en artesania?','buttons',false,{catalog:'si_no'},{field:'hogar_tiene_artesano',equals:'No'},false,true,'Permite identificar potencial de desarrollo artesanal aunque hoy no exista produccion.'));
+  Q.push(q_(4,s[1],s[2],0.6,'potencial_artesania_detalle','Detalle del potencial o interes artesanal del hogar','textarea',false,null,{field:'hogar_tiene_artesano',equals:'No'},false,true,'Registrar personas interesadas, habilidades previas, materiales disponibles o rubros que les gustaria aprender.'));
   Q.push(q_(4,s[1],s[2],1,'tipo_artesania_principal','Tipo principal de artesanía','select',true,{catalog:'tipo_artesania'},null,false,true,''));
   Q.push(q_(4,s[1],s[2],2,'oficio_principal','Oficio o especialidad principal','select',false,{catalog:'oficio_artesanal'},null,false,true,'Si su especialidad no aparece en la lista, seleccione Otro y especifique abajo.'));
   Q.push(q_(4,s[1],s[2],2.5,'oficio_principal_otro','Especificar oficio o especialidad','text',false,null,{field:'oficio_principal',equals:'Otro'},false,true,''));
@@ -106,6 +111,7 @@ function getQuestionnaireSeed_() {
   Q.push(q_(4,s[1],s[2],5,'materias_primas_otras','Otras materias primas utilizadas','checkbox_group',false,{catalog:'materia_prima'},null,false,true,''));
   Q.push(q_(4,s[1],s[2],6,'origen_materia_prima','Origen principal de materia prima','select',false,{catalog:'origen_materia_prima'},null,false,true,''));
   Q.push(q_(4,s[1],s[2],6.5,'origen_materia_prima_lugar','¿En qué lugar específico consigue la materia prima?','text',false,null,null,false,true,'Indique localidad, mercado, proveedor, campo, monte, etc.'));
+  Q.push(q_(4,s[1],s[2],6.6,'tiempo_extraccion_materia_prima','Tiempo aproximado para llegar, extraer y volver con la materia prima','text',false,null,null,false,true,'Registrar horas o dias por salida, desde el lugar donde la extrae hasta el retorno. Ej: 3 horas, medio dia, 1 dia.'));
   Q.push(q_(4,s[1],s[2],7,'dificultad_materia_prima','Dificultad principal para conseguir materia prima','select',false,{catalog:'dificultad_materia_prima'},null,false,true,''));
   Q.push(q_(4,s[1],s[2],8,'anos_experiencia','Años de experiencia artesanal','number',false,null,null,false,true,''));
   Q.push(q_(4,s[1],s[2],9,'aprendio_oficio','¿Cómo aprendió el oficio?','select',false,{catalog:'aprendizaje'},null,false,true,''));
@@ -133,16 +139,16 @@ function getQuestionnaireSeed_() {
   Q.push(q_(5,s[1],s[2],2,'produccion_unidades_mes','Unidades producidas por mes aproximada','number',false,null,null,false,true,''));
   Q.push(q_(5,s[1],s[2],3,'precio_promedio_producto_gs','Precio promedio del producto principal (Gs.)','number',false,null,null,false,true,''));
   Q.push(q_(5,s[1],s[2],4,'costo_promedio_producto_gs','Costo promedio estimado por producto (Gs.)','number',false,null,null,false,true,''));
-  Q.push(q_(5,s[1],s[2],5,'ingreso_artesania_mes_gs','Ingreso mensual aproximado por artesanía (Gs.)','number',false,null,null,false,true,''));
-  Q.push(q_(5,s[1],s[2],6,'ingreso_artesania_banda','Banda de ingreso mensual por artesanía','select',false,{catalog:'banda_ingreso'},null,false,true,''));
-  Q.push(q_(5,s[1],s[2],7,'ingreso_total_hogar_banda','Banda de ingreso mensual total del hogar','select',false,{catalog:'banda_ingreso'},null,false,true,''));
+  Q.push(q_(5,s[1],s[2],5,'ingreso_artesania_mes_gs','Ingreso mensual aproximado SOLO por artesania (Gs.)','number',false,null,null,false,true,'Anotar solamente lo que entra por venta o trabajo artesanal. No incluir salario, changas, agricultura, ayuda familiar ni otros ingresos del hogar.'));
+  Q.push(q_(5,s[1],s[2],6,'ingreso_artesania_banda','Banda de ingreso mensual SOLO por artesania','select',false,{catalog:'banda_ingreso'},null,false,true,'Esta banda debe referirse solo a la actividad artesanal.'));
+  Q.push(q_(5,s[1],s[2],7,'ingreso_total_hogar_banda','Banda de ingreso mensual TOTAL del hogar','select',false,{catalog:'banda_ingreso'},null,false,true,'Incluye artesania y todas las demas fuentes de ingreso del hogar.'));
   Q.push(q_(5,s[1],s[2],7.1,'ingreso_total_hogar_mes_gs','Ingreso mensual total aproximado del hogar, de todas las fuentes (Gs.)','number',false,null,null,false,true,'Incluya artesania, changas, salario, agricultura, ayuda familiar, subsidios y otras fuentes. Permite aproximar vulnerabilidad economica del hogar.'));
   Q.push(q_(5,s[1],s[2],7.2,'personas_dependen_ingreso_hogar','Cantidad de personas que dependen de ese ingreso del hogar','number',false,null,null,false,true,'Contar a quienes viven del ingreso mensual declarado, aunque no aporten ingresos.'));
   Q.push(q_(5,s[1],s[2],7.3,'personas_aportan_ingreso_hogar','Cantidad de personas del hogar que aportan ingresos','number',false,null,null,false,true,'Sirve para distinguir hogares con una sola persona proveedora de hogares con varios aportantes.'));
   Q.push(q_(5,s[1],s[2],7.4,'ingreso_alcanza_necesidades','El ingreso mensual del hogar alcanza para cubrir necesidades basicas','select',false,{catalog:'suficiencia_ingreso'},null,false,true,'Considere alimentacion, salud, educacion, transporte, servicios y gastos de vivienda.'));
   Q.push(q_(5,s[1],s[2],8,'principal_fuente_ingreso','Principal fuente de ingreso del hogar','select',false,{catalog:'fuente_ingreso'},null,false,true,''));
   Q.push(q_(5,s[1],s[2],8.5,'principal_fuente_ingreso_otro','Especificar otra fuente de ingreso principal','text',false,null,{field:'principal_fuente_ingreso',equals:'Otra'},false,true,''));
-  Q.push(q_(5,s[1],s[2],9,'principal_canal_venta','Canal principal de venta','select',false,{catalog:'canal_venta'},null,false,true,''));
+  Q.push(q_(5,s[1],s[2],9,'principal_canal_venta','Canal principal de venta de las artesanias','select',false,{catalog:'canal_venta'},null,false,true,'Aclarar que se pregunta por la venta de productos artesanales, no por otros ingresos.'));
   Q.push(q_(5,s[1],s[2],9.5,'principal_canal_venta_otro','Especificar otro canal principal de venta','text',false,null,{field:'principal_canal_venta',equals:'Otro'},false,true,''));
   Q.push(q_(5,s[1],s[2],10,'otros_canales_venta','Otros canales de venta utilizados','checkbox_group',false,{catalog:'canal_venta'},null,false,true,''));
   Q.push(q_(5,s[1],s[2],10.5,'otros_canales_venta_otro','Especificar otro canal de venta','text',false,null,{field:'otros_canales_venta',contains:'Otro'},false,true,''));
@@ -205,10 +211,11 @@ function getCatalogSeed_() {
   [['si_no','Sí'],['si_no','No'],['si_no','No sabe / No responde']].forEach(function(x,i){ add(x[0], normalizeKey_(x[1]), x[1], i+1); });
   [['si_no_parcial','Sí'],['si_no_parcial','No'],['si_no_parcial','Parcialmente'],['si_no_parcial','No sabe / No responde']].forEach(function(x,i){ add(x[0], normalizeKey_(x[1]), x[1], i+1); });
   ['Femenino','Masculino','Otro / prefiere no responder'].forEach(function(x,i){ add('sexo', normalizeKey_(x), x, i+1); });
-  ['Isla Hermosa','Paso Horqueta','Yby Yaú','Concepción','Otra localidad'].forEach(function(x,i){ add('comunidad', normalizeKey_(x), x, i+1); });
+  ['Isla Hermosa / Isla Tuyu','Isla Hermosa','Isla Tuyu','Otra localidad'].forEach(function(x,i){ add('comunidad', normalizeKey_(x), x, i+1); });
+  ['ISLA HERMOSA / ISLA TUYU','ISLA HERMOSA','ISLA TUYU'].forEach(function(x,i){ add('barrio_operativo', normalizeKey_(x), x, i+1); });
   ['Persona artesana','Familiar informante','Referente comunitario','Otro informante'].forEach(function(x,i){ add('tipo_informante', normalizeKey_(x), x, i+1); });
   ['Concepción','Amambay','San Pedro','Otro'].forEach(function(x,i){ add('departamento', normalizeKey_(x), x, i+1); });
-  ['Concepción','Yby Yaú','Horqueta','Paso Barreto','Sgto. José Félix López','Pedro Juan Caballero','Otro'].forEach(function(x,i){ add('distrito', normalizeKey_(x), x, i+1); });
+  ['Paso Barreto'].forEach(function(x,i){ add('distrito', normalizeKey_(x), x, i+1); });
   ['Soltero/a','Casado/a','Unión libre','Separado/a o divorciado/a','Viudo/a','No responde'].forEach(function(x,i){ add('estado_civil', normalizeKey_(x), x, i+1); });
   ['Paraguaya','Brasileña','Argentina','Otra'].forEach(function(x,i){ add('nacionalidad', normalizeKey_(x), x, i+1); });
   ['Guaraní','Castellano','Guaraní y castellano','Portugués','Otro'].forEach(function(x,i){ add('idioma', normalizeKey_(x), x, i+1); });
@@ -224,6 +231,7 @@ function getCatalogSeed_() {
   ['Celular','Smartphone','Computadora','Heladera','Televisor','Motocicleta','Máquina de coser','Herramientas eléctricas','Otro'].forEach(function(x,i){ add('equipamiento', normalizeKey_(x), x, i+1); });
   ['Sin instrucción','Primaria incompleta','Primaria completa','Secundaria incompleta','Secundaria completa','Técnica / formación profesional','Superior no universitaria','Universitaria','No responde'].forEach(function(x,i){ add('nivel_educativo', normalizeKey_(x), x, i+1); });
   ['IPS','Ministerio de Salud','Privado','Sanidad militar/policial','Ninguno','Otro'].forEach(function(x,i){ add('seguro_medico', normalizeKey_(x), x, i+1); });
+  ['Fisica / motriz','Visual','Auditiva','Intelectual','Psicosocial / mental','Del habla o comunicacion','Multiple','Otra','No sabe / No responde'].forEach(function(x,i){ add('tipo_discapacidad', normalizeKey_(x), x, i+1); });
   ['USF / Puesto de salud','Centro de salud','Hospital distrital/departamental','Clínica privada','Farmacia','No consulta','Otro'].forEach(function(x,i){ add('acceso_salud', normalizeKey_(x), x, i+1); });
   ['Distancia','Costo de traslado','Falta de medicamentos','Tiempo de espera','Horarios','No tiene dificultad','Otro'].forEach(function(x,i){ add('dificultad_salud', normalizeKey_(x), x, i+1); });
   ['Textil / tejido / bordado','Cestería / fibras vegetales','Madera / tallado','Cuero','Cerámica / arcilla','Bijouterie / accesorios','Reciclado / reutilizado','Alimentos artesanales','Artesanía mixta','Otra'].forEach(function(x,i){ add('tipo_artesania', normalizeKey_(x), x, i+1); });
@@ -264,6 +272,7 @@ function seedQuestionnaire() {
   replaceSheetData_(APP_CFG.SHEETS.QUESTIONNAIRE, QUESTIONNAIRE_HEADERS_, data);
   try { CacheService.getScriptCache().remove('artesanos_schema_v1'); } catch(e) {}
   try { CacheService.getScriptCache().remove('artesanos_schema_v2'); } catch(e) {}
+  try { CacheService.getScriptCache().remove('artesanos_schema_v3'); } catch(e) {}
   return { ok: true, rows: rows.length };
 }
 
@@ -273,6 +282,7 @@ function seedCatalogs() {
   replaceSheetData_(APP_CFG.SHEETS.CATALOGS, CATALOG_HEADERS_, data);
   try { CacheService.getScriptCache().remove('artesanos_schema_v1'); } catch(e) {}
   try { CacheService.getScriptCache().remove('artesanos_schema_v2'); } catch(e) {}
+  try { CacheService.getScriptCache().remove('artesanos_schema_v3'); } catch(e) {}
   return { ok: true, rows: rows.length };
 }
 
@@ -280,17 +290,31 @@ function ensureQuestionnaireSeedCurrent_() {
   ensureHeaders_(APP_CFG.SHEETS.QUESTIONNAIRE, QUESTIONNAIRE_HEADERS_);
   ensureHeaders_(APP_CFG.SHEETS.CATALOGS, CATALOG_HEADERS_);
   var existingQ = {};
+  var qSheet = getOrCreateSheet_(APP_CFG.SHEETS.QUESTIONNAIRE);
   getRowsAsObjects_(APP_CFG.SHEETS.QUESTIONNAIRE).forEach(function(r) {
     var field = normalizeText_(r.field_name);
-    if (field) existingQ[field] = true;
+    if (field) existingQ[field] = r;
   });
-  var addedQ = 0;
+  var addedQ = 0, updatedQ = 0;
   getQuestionnaireSeed_().forEach(function(r) {
     var field = normalizeText_(r.field_name);
-    if (!field || existingQ[field]) return;
-    appendObject_(APP_CFG.SHEETS.QUESTIONNAIRE, r, QUESTIONNAIRE_HEADERS_);
-    existingQ[field] = true;
-    addedQ++;
+    if (!field) return;
+    if (!existingQ[field]) {
+      appendObject_(APP_CFG.SHEETS.QUESTIONNAIRE, r, QUESTIONNAIRE_HEADERS_);
+      existingQ[field] = r;
+      addedQ++;
+      return;
+    }
+    var cur = existingQ[field];
+    var changed = false;
+    QUESTIONNAIRE_HEADERS_.forEach(function(h) {
+      if (normalizeText_(cur[h]) !== normalizeText_(r[h])) changed = true;
+    });
+    if (changed && cur.__rowNum) {
+      qSheet.getRange(cur.__rowNum, 1, 1, QUESTIONNAIRE_HEADERS_.length)
+        .setValues([QUESTIONNAIRE_HEADERS_.map(function(h) { return r[h] || ''; })]);
+      updatedQ++;
+    }
   });
 
   var existingC = {};
@@ -307,12 +331,13 @@ function ensureQuestionnaireSeedCurrent_() {
     addedC++;
   });
 
-  if (addedQ || addedC) {
+  if (addedQ || updatedQ || addedC) {
     syncHeaders_(APP_CFG.SHEETS.RESPONSES, getResponseHeaders_());
     try { CacheService.getScriptCache().remove('artesanos_schema_v1'); } catch(e) {}
     try { CacheService.getScriptCache().remove('artesanos_schema_v2'); } catch(e) {}
+    try { CacheService.getScriptCache().remove('artesanos_schema_v3'); } catch(e) {}
   }
-  return { ok: true, addedQuestions: addedQ, addedCatalogs: addedC };
+  return { ok: true, addedQuestions: addedQ, updatedQuestions: updatedQ, addedCatalogs: addedC };
 }
 
 function seedEditions_() {

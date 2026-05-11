@@ -1,5 +1,74 @@
 # Bitacora operativa - Encuesta Artesanos Isla Hermosa
 
+## 2026-05-11 - Ajustes solicitados por direccion y equipo de campo: flujo artesanal, roster, UI movil y georreferencia
+
+### Pedido recibido
+- Distrito no debe cambiar durante la carga.
+- Barrio/localidad debe venir predefinido para `ISLA HERMOSA / ISLA TUYU`.
+- En `Agregar integrante`, agregar fecha de nacimiento y discapacidad/tipo de discapacidad.
+- Evitar repetir preguntas; las edades por tramo de integrantes ya no deben cargarse manualmente.
+- Preferir botones frente a listas desplegables.
+- Aclarar diferencia entre ingreso total del hogar e ingreso por artesania.
+- Al inicio relevar si hay alguien que realiza artesanias; si no hay, continuar la encuesta orientada a potenciales interesados.
+- Aclarar que `Canal principal de ventas` corresponde a artesanias.
+- Asegurar que las opciones `Otro/Otra` permitan detalle escrito.
+- Agregar tiempo de extraccion de materia prima desde el lugar de origen.
+- Mejorar mensajes emergentes y confirmacion visible de envio en tablets.
+- Agregar botones para actualizar la app web e instalar acceso directo.
+- Guardar datos geoespaciales de vivienda mapeada para uso offline.
+
+### Cambios aplicados
+- `Seed.gs`:
+  - Se agrego `hogar_tiene_artesano` al inicio del control operativo.
+  - `distrito` queda como campo bloqueado con valor operativo `Paso Barreto`.
+  - `barrio_localidad` pasa a botones con catalogo `barrio_operativo`: `ISLA HERMOSA / ISLA TUYU`, `ISLA HERMOSA`, `ISLA TUYU`.
+  - Se agregaron preguntas de potencial artesanal cuando el hogar no tiene artesanos actuales.
+  - Se agrego `tipo_discapacidad_hogar` y detalle `tipo_discapacidad_hogar_otro`.
+  - Se agrego `tiempo_extraccion_materia_prima`.
+  - Se aclararon textos de ingresos: ingreso SOLO por artesania versus ingreso TOTAL del hogar.
+  - Se aclaro que `principal_canal_venta` se refiere a la venta de artesanias.
+  - `ensureQuestionnaireSeedCurrent_()` ahora tambien actualiza metadata existente, no solo agrega preguntas faltantes.
+  - Se agrego invalidacion de cache `artesanos_schema_v3`.
+- `Client.html`:
+  - Roster de hogar ampliado: parentesco, sexo por botones, fecha de nacimiento, edad calculada, discapacidad si/no y tipo de discapacidad.
+  - Se ocultan los campos manuales de edades por tramo; quedan como derivados calculados.
+  - Si `hogar_tiene_artesano = No`, se ocultan bloques productivos/formalizacion/riesgos artesanales y se muestran preguntas de potencial.
+  - Las listas cortas se renderizan como botones.
+  - Las opciones `Otro/Otra` generan campo de detalle escrito automaticamente.
+  - Mensajes de validacion y envio pasan a modal flotante visible en tablets.
+  - Toasts duran 9 segundos.
+  - Se agregaron botones `Actualizar app` e `Instalar acceso directo`.
+  - El mapa territorial se cachea en `localStorage`; al iniciar encuesta desde vivienda, se guardan lat/lng, geojson y origen de georreferencia en el borrador.
+- `Setup.gs`:
+  - `RESPUESTAS` agrega columnas `vivienda_mapeada_geojson` y `vivienda_mapeada_georef_origen`.
+  - Se agregan columnas de detalle `*_otro_detalle` para campos con catalogo/opcion `Otro/Otra`.
+- `Survey.gs`:
+  - Cache del esquema pasa a `artesanos_schema_v3`.
+  - Derivacion de edades del roster puede calcular edad desde `fecha_nacimiento`.
+  - La bandera de calidad por falta de tipo de artesania no aplica cuando el hogar declara que no hay artesanos.
+- `Styles.html`:
+  - Estilos para campos bloqueados, roster ampliado, botones compactos, detalle de `Otro/Otra` y modal flotante.
+
+### Verificacion local
+- `Seed.gs`: `node --check --input-type=commonjs` sin errores.
+- `Survey.gs`: `node --check --input-type=commonjs` sin errores.
+- `Setup.gs`: `node --check --input-type=commonjs` sin errores.
+- Script de `Client.html` extraido desde `<script>`: `node --check --input-type=commonjs` sin errores.
+
+### Pendiente inmediato
+- Resuelto en esta misma pasada.
+
+### Publicacion y verificacion
+- `npx clasp push -f`: exitoso, 14 archivos subidos a Apps Script.
+- `npx clasp version "v31 - ajustes direccion campo roster offline"`: version 31 creada.
+- `npx clasp deploy -i AKfycbwTpwf0GoONoPOEJnE-IxoDiYofcB54c_aQBoPlvaCrjYcJ_RNhdxqJC9dEClZH0Kk -V 31 -d "v31 - ajustes direccion campo roster offline"`: deployment publico actualizado a `@31`.
+- `npx clasp deployments`: confirma Web App publica en `@31 - v31 - ajustes direccion campo roster offline`.
+- Verificacion viva con POST a `/exec` y `getSurveySchema`:
+  - respuesta recibida con longitud `126033` caracteres.
+  - encontrados `hogar_tiene_artesano`, `tipo_discapacidad_hogar`, `tiempo_extraccion_materia_prima`.
+  - encontrados `barrio_operativo`, `potenciales_interesados_artesania`, `Canal principal de venta de las artesanias`.
+  - encontrados `ingreso_artesania_mes_gs`, `Ingreso mensual aproximado SOLO por artesania`, `ingreso_total_hogar_mes_gs`.
+
 ## 2026-05-05 - Revision inicial de continuidad
 
 ### Contexto revisado

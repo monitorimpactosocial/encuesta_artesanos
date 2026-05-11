@@ -4,6 +4,7 @@
   'use strict';
   const DRAFT_KEY = 'encuesta_artesanos_isla_hermosa_draft_v1';
   const SESSION_KEY = 'encuesta_artesanos_session_v1';
+  const FIELD_MAP_CACHE_KEY = 'encuesta_artesanos_fieldmap_cache_v1';
   const app = document.getElementById('app');
   const ctx = window.SERVER_CONTEXT || {};
   const state = {
@@ -17,6 +18,8 @@
     currentSection: 0,
     loading: false,
     message: null,
+    blockingMessage: null,
+    installPrompt: null,
     dashboard: null,
     dashboardError: null,
     fieldMap: null,
@@ -57,7 +60,9 @@
     try { return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g,c=>(c^crypto.getRandomValues(new Uint8Array(1))[0]&15>>c/4).toString(16)); }
     catch(e){ return 'ART_'+Date.now()+'_'+Math.random().toString(16).slice(2); }
   }
-  function toast(type, text){state.message={type,text}; render(); setTimeout(()=>{state.message=null; render();},5500);}
+  function toast(type, text){state.message={type,text}; render(); setTimeout(()=>{state.message=null; render();},9000);}
+  function notice(type, title, text){state.blockingMessage={type:type||'notice',title:title||'',text:text||''}; render();}
+  function clearNotice_(){state.blockingMessage=null; render();}
   function setLoading(v){state.loading=!!v; render();}
   function sessionToken(){return state.session && state.session.token ? state.session.token : '';}
   function saveSession(s){state.session=s; localStorage.setItem(SESSION_KEY, JSON.stringify(s||{}));}
@@ -75,8 +80,10 @@
   function clearDraft(){localStorage.removeItem(DRAFT_KEY); state.values={}; state.gps={}; state.photos={}; state.startTs=new Date().toISOString(); state.sourceUuid=cryptoRandom_(); seedDefaults_(); render();}
   function seedDefaults_(){
     if(!state.values.fecha_encuesta) state.values.fecha_encuesta=today();
-    if(!state.values.comunidad) state.values.comunidad='Isla Hermosa';
+    if(!state.values.comunidad) state.values.comunidad='Isla Hermosa / Isla Tuyu';
     if(!state.values.departamento) state.values.departamento='Concepción';
+    state.values.distrito='Paso Barreto';
+    if(!state.values.barrio_localidad) state.values.barrio_localidad='ISLA HERMOSA / ISLA TUYU';
     if(!state.values.edicion && state.bootstrap) state.values.edicion=state.bootstrap.app.activeEdition;
   }
 
@@ -92,6 +99,29 @@
       if(state.session) loadDashboard_();
     }catch(err){app.innerHTML='<div class="login-panel card error"><h3>Error al cargar</h3><p>'+esc(err.message||err)+'</p></div>';}
   }
+  window.addEventListener('beforeinstallprompt', function(e){
+    e.preventDefault();
+    state.installPrompt = e;
+  });
+  async function refreshApp_(){
+    try{
+      if('caches' in window){
+        const keys=await caches.keys();
+        await Promise.all(keys.filter(k=>String(k).indexOf('artesanos')>=0).map(k=>caches.delete(k)));
+      }
+    }catch(e){}
+    location.reload();
+  }
+  async function installApp_(){
+    if(state.installPrompt){
+      const promptEvent=state.installPrompt;
+      state.installPrompt=null;
+      promptEvent.prompt();
+      try{ await promptEvent.userChoice; }catch(e){}
+      return;
+    }
+    notice('notice','Instalar acceso directo','En esta tablet, use el menu del navegador y elija "Agregar a pantalla principal" o "Instalar app". Si no aparece, abra la version GitHub Pages o actualice la app.');
+  }
 
   function renderSkeleton_(){app.innerHTML='<div class="app-shell"><aside class="sidebar"><div class="brand"><div class="brand-mark">IH</div><div><h1>Artesanos Isla Hermosa</h1><p>Paracel · Monitor de Impacto Social</p></div></div><div class="side-card"><span class="loader"></span> Cargando aplicativo...</div></aside><main class="main"><div class="card"><span class="loader"></span> Preparando formulario y catálogos.</div></main></div>';}
 
@@ -105,7 +135,7 @@
       viewHtml = '<div class="card error"><h3>Error al mostrar la vista</h3><p>'+esc(String(e))+'</p></div>';
     }
     try {
-      app.innerHTML = '<div class="app-shell">'+sidebar_()+'<main class="main">'+topbar_()+message_()+viewHtml+footer_()+'</main></div>';
+      app.innerHTML = '<div class="app-shell">'+sidebar_()+'<main class="main">'+topbar_()+message_()+viewHtml+footer_()+'</main></div>'+blockingMessage_();
     } catch(e2){
       app.innerHTML = '<div style="padding:2rem;color:red"><b>Error crítico:</b> '+String(e2)+'</div>';
       return;
@@ -132,10 +162,16 @@
     const title={inicio:'Inicio',formulario:'Carga de encuesta',mapa:'Mapa territorial',dashboard:'Dashboard gerencial',respuestas:'Consulta de respuestas',admin:'Administración'}[state.tab]||'';
     return '<div class="topbar"><div class="page-title"><h2>'+title+'</h2><p>'+esc(state.bootstrap.app.orgName)+' · '+esc(state.bootstrap.app.projectName)+'</p></div><div class="userbox">'+
       (state.loading?'<span class="pill"><span class="loader"></span> Procesando</span>':'')+
+      '<button class="btn secondary" id="refreshAppBtn">Actualizar app</button><button class="btn secondary" id="installAppBtn">Instalar acceso directo</button>'+
       (state.session?'<span class="pill ok">● '+esc(state.session.displayName||state.session.username)+' · '+esc(state.session.role)+'</span><button class="btn secondary" id="logoutBtn">Salir</button>':'<button class="btn" id="openLogin">Iniciar sesión</button>')+
       '</div></div>';
   }
   function message_(){if(!state.message)return''; const cls=state.message.type==='error'?'error':(state.message.type==='success'?'success':'notice'); return '<div class="'+cls+'">'+esc(state.message.text)+'</div>';}
+  function blockingMessage_(){
+    if(!state.blockingMessage)return '';
+    const cls=state.blockingMessage.type==='error'?'error':(state.blockingMessage.type==='success'?'success':'notice');
+    return '<div class="floating-message"><div class="modal '+cls+'"><h3>'+esc(state.blockingMessage.title||'Aviso')+'</h3><p>'+esc(state.blockingMessage.text||'')+'</p><div class="toolbar right"><button class="btn" id="closeNoticeBtn">Entendido</button></div></div></div>';
+  }
   function footer_(){return '<div class="footer">Paracel S.A. · Encuesta a Artesanos de Isla Hermosa · Versión 1.0.0</div>';}
   function view_(){
     if(state.tab==='inicio') return homeView_();
@@ -170,6 +206,7 @@
       '<div class="card"><div class="section-title"><div><h3>'+esc(sec.label)+'</h3><p class="muted">Complete los campos requeridos marcados con asterisco.</p></div><span class="pill">'+esc(sec.id)+'</span></div><div class="q-grid">'+sec.questions.map(q=>renderQuestion_(q)).join('')+'</div><div class="toolbar" style="margin-top:18px;justify-content:space-between"><div><button class="btn secondary" id="prevSec" '+(i===0?'disabled':'')+'>Anterior</button> <button class="btn secondary" id="nextSec" '+(i===sections.length-1?'disabled':'')+'>Siguiente</button></div><button class="btn" id="submitSurveyBtn">Enviar encuesta</button></div></div>';
   }
   function isVisible_(q){
+    if(questionSuppressed_(q)) return false;
     const v=q.visible_if; if(!v||!v.field)return true;
     const cur=state.values[v.field];
     if(v.contains!==undefined){
@@ -178,22 +215,37 @@
       catch(x){return String(cur||'').indexOf(needle)>=0;}
     }
     if(v.equals!==undefined) return String(cur||'')===String(v.equals);
+    if(v.not_equals!==undefined) return String(cur||'')!==String(v.not_equals);
     if(v.not_empty) return cur!==undefined && cur!==null && String(cur)!=='';
     return true;
+  }
+  function questionSuppressed_(q){
+    const f=q.field_name;
+    const deprecated={'ninos_0_14':1,'jovenes_15_29':1,'adultos_30_64':1,'adultos_mayores_65mas':1};
+    if(deprecated[f]) return true;
+    const noArtisan=String(state.values.hogar_tiene_artesano||'')==='No';
+    if(!noArtisan) return false;
+    const keep={'potenciales_interesados_artesania':1,'potencial_artesania_detalle':1,'ingreso_total_hogar_banda':1,'ingreso_total_hogar_mes_gs':1,'personas_dependen_ingreso_hogar':1,'personas_aportan_ingreso_hogar':1,'ingreso_alcanza_necesidades':1,'principal_fuente_ingreso':1,'principal_fuente_ingreso_otro':1};
+    if(keep[f]) return false;
+    if(q.section_id==='actividad_artesanal' || q.section_id==='organizacion_formalizacion' || q.section_id==='condiciones_ambientales') return true;
+    if(q.section_id==='produccion_ventas' && !keep[f]) return true;
+    return false;
   }
   function renderQuestion_(q){
     if(!isVisible_(q)) return '';
     const full=['textarea','roster','photo','geolocation','checkbox_group','multiselect'].indexOf(q.input_type)>=0 ? ' full' : '';
     const req=q.required?'<span class="req">*</span>':'';
-    return '<div class="q'+full+'" data-q="'+esc(q.field_name)+'"><label>'+esc(q.label)+req+'</label>'+input_(q)+(q.help_text?'<div class="help">'+esc(q.help_text)+'</div>':'')+'</div>';
+    return '<div class="q'+full+'" data-q="'+esc(q.field_name)+'"><label>'+esc(q.label)+req+'</label>'+input_(q)+otherDetailInput_(q)+(q.help_text?'<div class="help">'+esc(q.help_text)+'</div>':'')+'</div>';
   }
   function input_(q){
     const f=q.field_name, val=state.values[f]||'';
     if(q.input_type==='textarea') return '<textarea class="control" data-field="'+esc(f)+'">'+esc(val)+'</textarea>';
     if(q.input_type==='number') return '<input class="control" type="number" inputmode="decimal" data-field="'+esc(f)+'" value="'+esc(val)+'">';
     if(q.input_type==='date') return '<input class="control" type="date" data-field="'+esc(f)+'" value="'+esc(val)+'">';
+    if(q.input_type==='locked') return '<input class="control locked" type="text" data-field="'+esc(f)+'" value="'+esc(val||lockedDefault_(f))+'" readonly>';
+    if(q.input_type==='select' && (q.options||[]).length>0 && (q.options||[]).length<=12) return choiceButtons_(f,q.options,val);
     if(q.input_type==='select') return '<select class="control" data-field="'+esc(f)+'"><option value="">Seleccione...</option>'+q.options.map(o=>'<option '+(String(val)===String(o.value)?'selected':'')+' value="'+esc(o.value)+'">'+esc(o.label)+'</option>').join('')+'</select>';
-    if(q.input_type==='buttons') return '<div class="buttons" data-buttons="'+esc(f)+'">'+q.options.map(o=>'<button type="button" class="choice '+(String(val)===String(o.value)?'active':'')+'" data-choice="'+esc(o.value)+'">'+esc(o.label)+'</button>').join('')+'</div>';
+    if(q.input_type==='buttons') return choiceButtons_(f,q.options,val);
     if(q.input_type==='checkbox_group' || q.input_type==='multiselect'){
       const arr=Array.isArray(val)?val:(val?String(val).split(';').map(x=>x.trim()):[]);
       return '<div class="check-list">'+q.options.map(o=>'<label class="check-item"><input type="checkbox" data-check="'+esc(f)+'" value="'+esc(o.value)+'" '+(arr.indexOf(o.value)>=0?'checked':'')+'> <span>'+esc(o.label)+'</span></label>').join('')+'</div>';
@@ -209,9 +261,29 @@
     if(q.input_type==='roster') return rosterInput_(f);
     return '<input class="control" type="text" data-field="'+esc(f)+'" value="'+esc(val)+'">';
   }
+  function choiceButtons_(field, options, val){
+    return '<div class="buttons" data-buttons="'+esc(field)+'">'+(options||[]).map(o=>'<button type="button" class="choice '+(String(val)===String(o.value)?'active':'')+'" data-choice="'+esc(o.value)+'">'+esc(o.label)+'</button>').join('')+'</div>';
+  }
+  function lockedDefault_(field){
+    if(field==='distrito') return 'Paso Barreto';
+    return '';
+  }
+  function hasOtherSelected_(q){
+    const val=state.values[q.field_name];
+    const vals=Array.isArray(val)?val:(val?[String(val)]:[]);
+    return vals.some(v=>/^otr[ao]/i.test(normalizeAscii_(v)));
+  }
+  function normalizeAscii_(v){
+    return String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+  }
+  function otherDetailInput_(q){
+    if(!q.options || !q.options.some(o=>/^otr[ao]/i.test(normalizeAscii_(o.label||o.value)))) return '';
+    const f=q.field_name+'_otro_detalle';
+    return hasOtherSelected_(q)?'<div class="other-detail"><label class="small muted">Detalle de Otro/Otra</label><input class="control" data-field="'+esc(f)+'" placeholder="Especificar" value="'+esc(state.values[f]||'')+'"></div>':'';
+  }
   function rosterInput_(field){
     const arr=Array.isArray(state.values[field])?state.values[field]:[];
-    return '<div class="roster" id="rosterBox"><div class="toolbar"><button type="button" class="btn secondary" id="addRoster">Agregar integrante</button><span class="pill">'+arr.length+' integrantes</span></div>'+arr.map((m,i)=>'<div class="roster-row"><input class="control" data-roster="'+i+'" data-roster-field="parentesco" placeholder="Parentesco" value="'+esc(m.parentesco||'')+'"><select class="control" data-roster="'+i+'" data-roster-field="sexo"><option value="">Sexo</option><option '+(m.sexo==='Femenino'?'selected':'')+'>Femenino</option><option '+(m.sexo==='Masculino'?'selected':'')+'>Masculino</option><option '+(m.sexo==='Otro / no responde'?'selected':'')+'>Otro / no responde</option></select><input class="control" type="number" data-roster="'+i+'" data-roster-field="edad" placeholder="Edad" value="'+esc(m.edad||'')+'"><button type="button" class="btn danger" data-remove-roster="'+i+'">×</button></div>').join('')+'</div>';
+    return '<div class="roster" id="rosterBox"><div class="toolbar"><button type="button" class="btn secondary" id="addRoster">Agregar integrante</button><span class="pill">'+arr.length+' integrantes</span></div>'+arr.map((m,i)=>'<div class="roster-row roster-row-wide"><input class="control" data-roster="'+i+'" data-roster-field="parentesco" placeholder="Parentesco" value="'+esc(m.parentesco||'')+'"><div class="buttons compact" data-roster-buttons="'+i+'" data-roster-field="sexo"><button type="button" class="choice '+(m.sexo==='Femenino'?'active':'')+'" data-roster-choice="Femenino">Femenino</button><button type="button" class="choice '+(m.sexo==='Masculino'?'active':'')+'" data-roster-choice="Masculino">Masculino</button><button type="button" class="choice '+(m.sexo==='Otro / no responde'?'active':'')+'" data-roster-choice="Otro / no responde">Otro</button></div><input class="control" type="date" data-roster="'+i+'" data-roster-field="fecha_nacimiento" value="'+esc(m.fecha_nacimiento||'')+'"><input class="control" type="number" data-roster="'+i+'" data-roster-field="edad" placeholder="Edad calc." value="'+esc(m.edad||'')+'" readonly><div class="buttons compact" data-roster-buttons="'+i+'" data-roster-field="discapacidad"><button type="button" class="choice '+(m.discapacidad==='Sí'?'active':'')+'" data-roster-choice="Sí">Disc. sí</button><button type="button" class="choice '+(m.discapacidad==='No'?'active':'')+'" data-roster-choice="No">No</button></div><input class="control" data-roster="'+i+'" data-roster-field="tipo_discapacidad" placeholder="Tipo discapacidad" value="'+esc(m.tipo_discapacidad||'')+'" '+(m.discapacidad==='Sí'?'':'disabled')+'><button type="button" class="btn danger" data-remove-roster="'+i+'">×</button></div>').join('')+'</div>';
   }
 
   function bindGlobal_(){
@@ -220,6 +292,9 @@
     const logoutBtn=document.getElementById('logoutBtn'); if(logoutBtn) logoutBtn.onclick=()=>{callServer('logout',sessionToken()).finally(()=>{state.session=null;localStorage.removeItem(SESSION_KEY);toast('success','Sesión cerrada.');});};
     const loginBtn=document.getElementById('loginBtn'); if(loginBtn) loginBtn.onclick=doLogin_;
     const resetBtn=document.getElementById('resetUsersBtn'); if(resetBtn) resetBtn.onclick=doResetUsers_;
+    const closeNotice=document.getElementById('closeNoticeBtn'); if(closeNotice) closeNotice.onclick=clearNotice_;
+    const refresh=document.getElementById('refreshAppBtn'); if(refresh) refresh.onclick=refreshApp_;
+    const install=document.getElementById('installAppBtn'); if(install) install.onclick=installApp_;
   }
   function showLoginModal_(){
     document.body.insertAdjacentHTML('beforeend','<div class="modal-back" id="loginModal"><div class="modal"><div class="toolbar" style="justify-content:space-between"><h3>Iniciar sesión</h3><button class="btn secondary" id="closeLogin">Cerrar</button></div>'+loginView_('Ingrese sus credenciales administrativas.')+'</div></div>');
@@ -258,12 +333,13 @@
     document.querySelectorAll('[data-section]').forEach(b=>b.onclick=()=>{state.currentSection=Number(b.dataset.section); render();});
     document.querySelectorAll('[data-field]').forEach(el=>el.oninput=el.onchange=()=>{state.values[el.dataset.field]=el.value; saveDraft(); renderSoftProgress_();});
     document.querySelectorAll('[data-buttons]').forEach(box=>box.querySelectorAll('[data-choice]').forEach(btn=>btn.onclick=()=>{state.values[box.dataset.buttons]=btn.dataset.choice; saveDraft(); render();}));
-    document.querySelectorAll('[data-check]').forEach(ch=>ch.onchange=()=>{const f=ch.dataset.check; state.values[f]=Array.from(document.querySelectorAll('[data-check="'+cssEsc_(f)+'"]:checked')).map(x=>x.value); saveDraft();});
+    document.querySelectorAll('[data-check]').forEach(ch=>ch.onchange=()=>{const f=ch.dataset.check; state.values[f]=Array.from(document.querySelectorAll('[data-check="'+cssEsc_(f)+'"]:checked')).map(x=>x.value); saveDraft(); render();});
     document.querySelectorAll('[data-geo]').forEach(btn=>btn.onclick=()=>captureGeo_(btn.dataset.geo));
     document.querySelectorAll('[data-photo]').forEach(inp=>inp.onchange=()=>handlePhoto_(inp.dataset.photo, inp.files&&inp.files[0]));
-    const add=document.getElementById('addRoster'); if(add) add.onclick=()=>{if(!Array.isArray(state.values.miembros_hogar_json))state.values.miembros_hogar_json=[]; state.values.miembros_hogar_json.push({parentesco:'',sexo:'',edad:''}); updateRosterTotals_(); saveDraft(); render();};
+    const add=document.getElementById('addRoster'); if(add) add.onclick=()=>{if(!Array.isArray(state.values.miembros_hogar_json))state.values.miembros_hogar_json=[]; state.values.miembros_hogar_json.push({parentesco:'',sexo:'',fecha_nacimiento:'',edad:'',discapacidad:'No',tipo_discapacidad:''}); updateRosterTotals_(); saveDraft(); render();};
     document.querySelectorAll('[data-remove-roster]').forEach(b=>b.onclick=()=>{state.values.miembros_hogar_json.splice(Number(b.dataset.removeRoster),1); updateRosterTotals_(); saveDraft(); render();});
-    document.querySelectorAll('[data-roster]').forEach(el=>el.oninput=el.onchange=()=>{const i=Number(el.dataset.roster), f=el.dataset.rosterField; state.values.miembros_hogar_json[i][f]=el.value; updateRosterTotals_(); saveDraft();});
+    document.querySelectorAll('[data-roster]').forEach(el=>el.oninput=el.onchange=()=>{const i=Number(el.dataset.roster), f=el.dataset.rosterField; state.values.miembros_hogar_json[i][f]=el.value; if(f==='fecha_nacimiento') state.values.miembros_hogar_json[i].edad=ageFromBirthdate_(el.value); updateRosterTotals_(); saveDraft(); render();});
+    document.querySelectorAll('[data-roster-buttons]').forEach(box=>box.querySelectorAll('[data-roster-choice]').forEach(btn=>btn.onclick=()=>{const i=Number(box.dataset.rosterButtons), f=box.dataset.rosterField; state.values.miembros_hogar_json[i][f]=btn.dataset.rosterChoice; if(f==='discapacidad' && btn.dataset.rosterChoice!=='Sí') state.values.miembros_hogar_json[i].tipo_discapacidad=''; updateRosterTotals_(); saveDraft(); render();}));
     const prev=document.getElementById('prevSec'); if(prev) prev.onclick=()=>{state.currentSection=Math.max(0,state.currentSection-1); render();};
     const next=document.getElementById('nextSec'); if(next) next.onclick=()=>{state.currentSection=Math.min(state.schema.sections.length-1,state.currentSection+1); render();};
     const save=document.getElementById('saveDraftBtn'); if(save) save.onclick=()=>{saveDraft();toast('success','Borrador guardado en este dispositivo.');};
@@ -275,8 +351,18 @@
   function updateRosterTotals_(){
     const arr=Array.isArray(state.values.miembros_hogar_json)?state.values.miembros_hogar_json:[];
     let mujeres=0,hombres=0,ninos=0,jovenes=0,adultos=0,mayores=0;
-    arr.forEach(m=>{const sx=(m.sexo||'').toLowerCase(), e=Number(m.edad); if(sx.indexOf('femen')>=0)mujeres++; if(sx.indexOf('mascul')>=0)hombres++; if(isFinite(e)){if(e<=14)ninos++;else if(e<=29)jovenes++;else if(e<=64)adultos++;else mayores++;}});
+    arr.forEach(m=>{if(m.fecha_nacimiento) m.edad=ageFromBirthdate_(m.fecha_nacimiento); const sx=(m.sexo||'').toLowerCase(), e=Number(m.edad); if(sx.indexOf('femen')>=0)mujeres++; if(sx.indexOf('mascul')>=0)hombres++; if(isFinite(e)){if(e<=14)ninos++;else if(e<=29)jovenes++;else if(e<=64)adultos++;else mayores++;}});
     Object.assign(state.values,{total_miembros:arr.length,n_mujeres:mujeres,n_hombres:hombres,ninos_0_14:ninos,jovenes_15_29:jovenes,adultos_30_64:adultos,adultos_mayores_65mas:mayores});
+  }
+  function ageFromBirthdate_(dateStr){
+    if(!dateStr)return '';
+    const d=new Date(dateStr+'T00:00:00');
+    if(isNaN(d.getTime()))return '';
+    const t=new Date();
+    let age=t.getFullYear()-d.getFullYear();
+    const m=t.getMonth()-d.getMonth();
+    if(m<0 || (m===0 && t.getDate()<d.getDate())) age--;
+    return age>=0 && age<120 ? String(age) : '';
   }
   async function captureGeo_(field){
     if(!navigator.geolocation){toast('error','Este dispositivo no permite geolocalización.');return;}
@@ -312,13 +398,15 @@
     const out={}; Object.keys(state.values).forEach(k=>{const v=state.values[k]; out[k]=Array.isArray(v)&&k!=='miembros_hogar_json'?v.join('; '):v;}); return out;
   }
   async function submitSurvey_(){
-    const missing=validate_(); if(missing.length){toast('error','Faltan campos obligatorios: '+missing.slice(0,6).join(', ')+(missing.length>6?'...':''));return;}
+    seedDefaults_();
+    const missing=validate_(); if(missing.length){notice('error','Faltan datos obligatorios','Complete estos campos antes de enviar: '+missing.slice(0,8).join(', ')+(missing.length>8?'...':''));return;}
     if(!confirm('¿Enviar la encuesta? Verifique que el consentimiento, GPS y datos principales sean correctos.')) return;
     const photos=Object.keys(state.photos).map(f=>Object.assign({},state.photos[f],{fieldName:f}));
     const payload={source_uuid:state.sourceUuid,source_version:'artesanos-v1.0.0',start_ts:state.startTs,end_ts:new Date().toISOString(),values:normalizedValues_(),gps:state.gps,photos:photos};
     setLoading(true);
-    try{const res=await callServer('submitSurvey',payload,sessionToken()); state.fieldMap=null; state.dashboard=null; state.responses=null; state.tab='inicio'; clearDraft(); toast('success','Encuesta enviada. Estado de calidad: '+res.calidad_estado+'.');}
-    catch(err){toast('error',err.message||String(err));}
+    notice('notice','Enviando encuesta','Estamos guardando las respuestas, fotos y datos geoespaciales. Mantenga abierta esta pantalla hasta ver la confirmacion.');
+    try{const res=await callServer('submitSurvey',payload,sessionToken()); state.fieldMap=null; state.dashboard=null; state.responses=null; state.tab='inicio'; clearDraft(); notice('success','Encuesta enviada','Las respuestas fueron guardadas correctamente. Estado de calidad: '+res.calidad_estado+'.');}
+    catch(err){notice('error','No se pudo enviar',err.message||String(err));}
     finally{setLoading(false);}
   }
 
@@ -347,9 +435,22 @@
   async function loadFieldMap_(){
     if(!state.session)return;
     state.fieldMapError=null;
-    try{ state.fieldMap=await callServer('getFieldMapData',sessionToken()); }
-    catch(err){ state.fieldMapError=String(err.message||err); }
+    try{ state.fieldMap=await callServer('getFieldMapData',sessionToken()); cacheFieldMap_(state.fieldMap); }
+    catch(err){
+      const cached=restoreFieldMapCache_();
+      if(cached){ state.fieldMap=cached; state.fieldMapError=null; toast('notice','Mapa cargado desde cache local. Revise conexion para actualizar asignaciones.'); }
+      else state.fieldMapError=String(err.message||err);
+    }
     render();
+  }
+  function cacheFieldMap_(data){
+    try{ localStorage.setItem(FIELD_MAP_CACHE_KEY, JSON.stringify({ts:new Date().toISOString(),data:data})); }catch(e){}
+  }
+  function restoreFieldMapCache_(){
+    try{
+      const cached=JSON.parse(localStorage.getItem(FIELD_MAP_CACHE_KEY)||'null');
+      return cached&&cached.data ? cached.data : null;
+    }catch(e){ return null; }
   }
   function bindFieldMap_(){
     const retry=document.getElementById('retryFieldMap'); if(retry) retry.onclick=()=>{state.fieldMap=null;state.fieldMapError=null;loadFieldMap_();};
@@ -666,9 +767,12 @@
     state.values.vivienda_mapeada_n=String(p.n);
     state.values.vivienda_mapeada_lat=String(p.lat);
     state.values.vivienda_mapeada_lng=String(p.lng);
+    state.values.vivienda_mapeada_geojson=JSON.stringify({type:'Feature',geometry:{type:'Point',coordinates:[Number(p.lng),Number(p.lat)]},properties:{id:String(p.id),n:String(p.n),assigned_to:p.assigned_to||'',route_order:p.route_order||'',source:'INE/marco operativo local'}});
+    state.values.vivienda_mapeada_georef_origen='mapa_territorial_cache_local';
     state.values.vivienda_asignada_a=p.assigned_to||((state.fieldMap.currentUser||{}).username||'');
-    if(!state.values.comunidad) state.values.comunidad='Isla Hermosa';
-    if(!state.values.barrio_localidad) state.values.barrio_localidad='Isla Tuyu';
+    if(!state.values.comunidad) state.values.comunidad='Isla Hermosa / Isla Tuyu';
+    state.values.distrito='Paso Barreto';
+    if(!state.values.barrio_localidad) state.values.barrio_localidad='ISLA HERMOSA / ISLA TUYU';
     saveDraft();
     state.tab='formulario';
     toast('success','Encuesta vinculada a vivienda '+p.n+'.');
