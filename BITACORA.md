@@ -1,5 +1,40 @@
 # Bitacora operativa - Encuesta Artesanos Isla Hermosa
 
+## 2026-05-11 - Consentimiento como fin obligatorio de encuesta
+
+### Pedido recibido
+- Si la persona no acepta participar de la encuesta, la encuesta debe terminar ahi y no puede continuar.
+
+### Cambios aplicados
+- `Client.html`:
+  - Se agregaron `consentAccepted_()` y `consentBlocksSurvey_()`.
+  - Si `consentimiento_informado` tiene cualquier valor distinto de `Sí`, el formulario:
+    - muestra un bloque visible `Fin de la entrevista`,
+    - oculta las preguntas posteriores al consentimiento,
+    - deshabilita las secciones siguientes,
+    - deshabilita el boton `Siguiente`,
+    - deshabilita el boton `Enviar encuesta`,
+    - muestra un modal flotante si se intenta avanzar/enviar sin consentimiento afirmativo.
+  - Si hay un borrador con consentimiento no afirmativo, la vista vuelve a la seccion de control para evitar continuar desde secciones posteriores.
+- `Seed.gs`:
+  - Se reforzo el texto de ayuda de `consentimiento_informado`: si la respuesta no es `Sí`, la entrevista finaliza y no se continua.
+- `Survey.gs`:
+  - Se verifico que el backend ya bloquea el guardado cuando `require_consent = SI` y el consentimiento no es afirmativo.
+
+### Verificacion local
+- Script de `Client.html` extraido desde `<script>`: `node --check --input-type=commonjs` sin errores.
+- `Seed.gs`: `node --check --input-type=commonjs` sin errores.
+- `Survey.gs`: `node --check --input-type=commonjs` sin errores.
+
+### Pendiente inmediato
+- Resuelto en esta misma pasada.
+
+### Publicacion
+- `npx clasp push -f`: exitoso, 14 archivos subidos.
+- `npx clasp version "v32 - consentimiento bloquea continuidad"`: version 32 creada.
+- `npx clasp deploy -i AKfycbwTpwf0GoONoPOEJnE-IxoDiYofcB54c_aQBoPlvaCrjYcJ_RNhdxqJC9dEClZH0Kk -V 32 -d "v32 - consentimiento bloquea continuidad"`: deployment publico actualizado a `@32`.
+- `npx clasp deployments`: confirma Web App publica en `@32 - v32 - consentimiento bloquea continuidad`.
+
 ## 2026-05-11 - Ajustes solicitados por direccion y equipo de campo: flujo artesanal, roster, UI movil y georreferencia
 
 ### Pedido recibido

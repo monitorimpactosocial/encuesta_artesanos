@@ -39,7 +39,7 @@ function getQuestionnaireSeed_() {
   Q.push(q_(0,s[1],s[2],6,'comunidad','Comunidad / localidad','buttons',true,{catalog:'comunidad'},null,false,true,''));
   Q.push(q_(0,s[1],s[2],7,'segmento_operativo','Segmento operativo / recorrido','text',false,null,null,false,true,''));
   Q.push(q_(0,s[1],s[2],8,'tipo_informante','Tipo de informante','buttons',true,{catalog:'tipo_informante'},null,false,true,''));
-  Q.push(q_(0,s[1],s[2],9,'consentimiento_informado','¿Acepta participar voluntariamente?','buttons',true,{catalog:'si_no'},null,false,true,'Debe leerse el consentimiento antes de continuar.'));
+  Q.push(q_(0,s[1],s[2],9,'consentimiento_informado','¿Acepta participar voluntariamente?','buttons',true,{catalog:'si_no'},null,false,true,'Debe leerse el consentimiento antes de continuar. Si la respuesta no es Sí, la entrevista finaliza y no se continua con la encuesta.'));
   Q.push(q_(0,s[1],s[2],10,'hogar_tiene_artesano','En este hogar, ¿hay alguna persona que actualmente realiza artesanias?','buttons',true,{catalog:'si_no'},null,false,true,'Si la respuesta es No, la encuesta continua y se relevan posibles interesados o capacidades para trabajar en artesania.'));
 
   s = ['1','identificacion','Identificación de la persona artesana'];

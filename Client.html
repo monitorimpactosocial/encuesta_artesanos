@@ -199,11 +199,19 @@
 
   function surveyView_(){
     const sections=state.schema.sections;
-    const i=Math.max(0,Math.min(state.currentSection,sections.length-1));
+    const blocked=consentBlocksSurvey_();
+    const i=blocked?0:Math.max(0,Math.min(state.currentSection,sections.length-1));
     const sec=sections[i];
     const progress=Math.round(((i+1)/sections.length)*100);
-    return '<div class="card"><div class="section-title"><div><h3>Formulario de entrevista</h3><p class="muted">Avance de secciones: '+(i+1)+' de '+sections.length+' · '+progress+'%</p></div><div class="toolbar right"><button class="btn secondary" id="saveDraftBtn">Guardar borrador</button><button class="btn ghost" id="clearDraftBtn">Nueva entrevista</button></div></div><div class="form-progress"><div style="width:'+progress+'%"></div></div><div class="section-tabs">'+sections.map((s,idx)=>'<button class="'+(idx===i?'active':'')+'" data-section="'+idx+'">'+(idx+1)+'. '+esc(s.label)+'</button>').join('')+'</div></div>'+ 
-      '<div class="card"><div class="section-title"><div><h3>'+esc(sec.label)+'</h3><p class="muted">Complete los campos requeridos marcados con asterisco.</p></div><span class="pill">'+esc(sec.id)+'</span></div><div class="q-grid">'+sec.questions.map(q=>renderQuestion_(q)).join('')+'</div><div class="toolbar" style="margin-top:18px;justify-content:space-between"><div><button class="btn secondary" id="prevSec" '+(i===0?'disabled':'')+'>Anterior</button> <button class="btn secondary" id="nextSec" '+(i===sections.length-1?'disabled':'')+'>Siguiente</button></div><button class="btn" id="submitSurveyBtn">Enviar encuesta</button></div></div>';
+    const tabs=sections.map((s,idx)=>'<button class="'+(idx===i?'active':'')+'" data-section="'+idx+'" '+(blocked&&idx>0?'disabled':'')+'>'+(idx+1)+'. '+esc(s.label)+'</button>').join('');
+    const stopHtml=blocked?'<div class="notice consent-stop"><h3>Fin de la entrevista</h3><p>La persona no acepto participar voluntariamente. Por criterio etico y operativo, no corresponde continuar ni enviar respuestas de la encuesta.</p><p class="small muted">Agradezca el tiempo de la persona y pulse "Nueva entrevista" para iniciar otro hogar.</p></div>':'';
+    return '<div class="card"><div class="section-title"><div><h3>Formulario de entrevista</h3><p class="muted">Avance de secciones: '+(i+1)+' de '+sections.length+' · '+progress+'%</p></div><div class="toolbar right"><button class="btn secondary" id="saveDraftBtn">Guardar borrador</button><button class="btn ghost" id="clearDraftBtn">Nueva entrevista</button></div></div><div class="form-progress"><div style="width:'+progress+'%"></div></div><div class="section-tabs">'+tabs+'</div></div>'+ 
+      '<div class="card"><div class="section-title"><div><h3>'+esc(sec.label)+'</h3><p class="muted">'+(blocked?'La encuesta se detiene porque no hay consentimiento afirmativo.':'Complete los campos requeridos marcados con asterisco.')+'</p></div><span class="pill">'+esc(sec.id)+'</span></div><div class="q-grid">'+sec.questions.map(q=>renderQuestion_(q)).join('')+'</div>'+stopHtml+'<div class="toolbar" style="margin-top:18px;justify-content:space-between"><div><button class="btn secondary" id="prevSec" '+(i===0?'disabled':'')+'>Anterior</button> <button class="btn secondary" id="nextSec" '+(i===sections.length-1||blocked?'disabled':'')+'>Siguiente</button></div><button class="btn" id="submitSurveyBtn" '+(blocked?'disabled':'')+'>Enviar encuesta</button></div></div>';
+  }
+  function consentAccepted_(){return String(state.values.consentimiento_informado||'')==='Sí';}
+  function consentBlocksSurvey_(){
+    const v=String(state.values.consentimiento_informado||'');
+    return v!=='' && v!=='Sí';
   }
   function isVisible_(q){
     if(questionSuppressed_(q)) return false;
@@ -221,6 +229,7 @@
   }
   function questionSuppressed_(q){
     const f=q.field_name;
+    if(consentBlocksSurvey_() && !(q.section_id==='control' && Number(q.question_order||0)<=9)) return true;
     const deprecated={'ninos_0_14':1,'jovenes_15_29':1,'adultos_30_64':1,'adultos_mayores_65mas':1};
     if(deprecated[f]) return true;
     const noArtisan=String(state.values.hogar_tiene_artesano||'')==='No';
@@ -341,7 +350,7 @@
     document.querySelectorAll('[data-roster]').forEach(el=>el.oninput=el.onchange=()=>{const i=Number(el.dataset.roster), f=el.dataset.rosterField; state.values.miembros_hogar_json[i][f]=el.value; if(f==='fecha_nacimiento') state.values.miembros_hogar_json[i].edad=ageFromBirthdate_(el.value); updateRosterTotals_(); saveDraft(); render();});
     document.querySelectorAll('[data-roster-buttons]').forEach(box=>box.querySelectorAll('[data-roster-choice]').forEach(btn=>btn.onclick=()=>{const i=Number(box.dataset.rosterButtons), f=box.dataset.rosterField; state.values.miembros_hogar_json[i][f]=btn.dataset.rosterChoice; if(f==='discapacidad' && btn.dataset.rosterChoice!=='Sí') state.values.miembros_hogar_json[i].tipo_discapacidad=''; updateRosterTotals_(); saveDraft(); render();}));
     const prev=document.getElementById('prevSec'); if(prev) prev.onclick=()=>{state.currentSection=Math.max(0,state.currentSection-1); render();};
-    const next=document.getElementById('nextSec'); if(next) next.onclick=()=>{state.currentSection=Math.min(state.schema.sections.length-1,state.currentSection+1); render();};
+    const next=document.getElementById('nextSec'); if(next) next.onclick=()=>{if(consentBlocksSurvey_()){notice('error','Encuesta finalizada','No se puede continuar porque la persona no acepto participar.');return;} state.currentSection=Math.min(state.schema.sections.length-1,state.currentSection+1); render();};
     const save=document.getElementById('saveDraftBtn'); if(save) save.onclick=()=>{saveDraft();toast('success','Borrador guardado en este dispositivo.');};
     const clear=document.getElementById('clearDraftBtn'); if(clear) clear.onclick=()=>{if(confirm('¿Iniciar una nueva entrevista y descartar el borrador local?')) clearDraft();};
     const submit=document.getElementById('submitSurveyBtn'); if(submit) submit.onclick=submitSurvey_;
@@ -399,6 +408,7 @@
   }
   async function submitSurvey_(){
     seedDefaults_();
+    if(!consentAccepted_()){notice('error','No se puede enviar','La encuesta solo puede enviarse si la persona acepta participar voluntariamente. Si no acepta, finalice la visita e inicie una nueva entrevista.');return;}
     const missing=validate_(); if(missing.length){notice('error','Faltan datos obligatorios','Complete estos campos antes de enviar: '+missing.slice(0,8).join(', ')+(missing.length>8?'...':''));return;}
     if(!confirm('¿Enviar la encuesta? Verifique que el consentimiento, GPS y datos principales sean correctos.')) return;
     const photos=Object.keys(state.photos).map(f=>Object.assign({},state.photos[f],{fieldName:f}));
