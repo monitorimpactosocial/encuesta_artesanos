@@ -590,6 +590,70 @@ Despues de hacer login en la Web App, ir al panel Admin y ejecutar **"Sincroniza
 - El tiempo total del relevamiento ya se presenta como duracion simultanea/calendario.
 - La acumulacion de tiempos individuales deja de presentarse como total del operativo.
 
+## 2026-05-11 - Ajustes solicitados por direccion: pobreza e informacion Paracel
+
+### Pedido
+- Incorporar preguntas que ayuden a identificar nivel de pobreza:
+  - ingreso general del hogar, no solo ingreso por artesania,
+  - cuantas personas dependen de ese ingreso.
+- Incorporar si desea recibir informacion sobre Paracel:
+  - en que formato,
+  - en que idioma.
+
+### Cambios aplicados en el cuestionario
+- `Seed.gs`, seccion `Produccion, ventas e ingresos`:
+  - `ingreso_total_hogar_mes_gs`: ingreso mensual total aproximado del hogar, de todas las fuentes.
+  - `personas_dependen_ingreso_hogar`: cantidad de personas que dependen de ese ingreso.
+  - `personas_aportan_ingreso_hogar`: cantidad de personas del hogar que aportan ingresos.
+  - `ingreso_alcanza_necesidades`: suficiencia del ingreso para necesidades basicas.
+- `Seed.gs`, seccion `Vinculacion, expectativas y cierre`:
+  - `desea_recibir_info_paracel`: preferencia para recibir informacion.
+  - `formato_info_paracel`: formato preferido.
+  - `idioma_info_paracel`: idioma preferido.
+- `Seed.gs`, catalogos nuevos:
+  - `suficiencia_ingreso`
+  - `formato_info_paracel`
+  - `idioma_info_paracel`
+
+### Validacion local
+- `Seed.gs` validado con `node --check`.
+
+### Pendiente de liberacion
+1. `npx clasp push -f`.
+2. Crear version GAS.
+3. Actualizar deployment publico.
+4. Ejecutar `seedCatalogs`, `seedQuestionnaire` y `fixEverything` para actualizar la hoja backend y encabezados.
+5. Verificar `/exec` HTTP 200.
+6. Commit/push Git.
+
+### Ajuste operativo posterior
+- `npx clasp run seedCatalogs` no pudo ejecutarse desde esta sesion por permisos de Apps Script.
+- Para evitar dependencia manual, se implemento sincronizacion automatica:
+  - `ensureQuestionnaireSeedCurrent_()` agrega al backend solo preguntas/catalogos faltantes.
+  - `getSurveySchema()` ahora usa cache `artesanos_schema_v2` y ejecuta esa verificacion antes de servir el cuestionario.
+  - Si agrega preguntas nuevas, tambien sincroniza encabezados de `RESPUESTAS`.
+- Validacion adicional:
+  - `Seed.gs` y `Survey.gs` pasaron `node --check`.
+
+### Liberacion ejecutada
+- `npx clasp push -f`: exitoso, 14 archivos subidos.
+- `npx clasp version "v29 - preguntas pobreza e informacion Paracel"`: creada version 29.
+- `npx clasp deploy -i AKfycbwTpwf0GoONoPOEJnE-IxoDiYofcB54c_aQBoPlvaCrjYcJ_RNhdxqJC9dEClZH0Kk -V 29`: deployment publico actualizado inicialmente.
+- Al no poder ejecutar `clasp run seedCatalogs`, se aplico autoactualizacion y se publico version correctiva:
+  - `npx clasp version "v30 - autoactualizar preguntas direccion"`: creada version 30.
+  - `npx clasp deploy -i AKfycbwTpwf0GoONoPOEJnE-IxoDiYofcB54c_aQBoPlvaCrjYcJ_RNhdxqJC9dEClZH0Kk -V 30`: deployment publico actualizado.
+- `npx clasp deployments`: confirma `AKfycbwTpwf0GoONoPOEJnE-IxoDiYofcB54c_aQBoPlvaCrjYcJ_RNhdxqJC9dEClZH0Kk @30 - v30 - autoactualizar preguntas direccion`.
+- Verificacion HTTP de `/exec`: status `200`.
+- Verificacion `doPost getSurveySchema`: status `200`; respuesta contiene:
+  - `ingreso_total_hogar_mes_gs`
+  - `personas_dependen_ingreso_hogar`
+  - `formato_info_paracel`
+  - `idioma_info_paracel`
+
+### Estado operativo
+- Las nuevas preguntas quedan en codigo y se agregan automaticamente al backend al cargar el esquema del cuestionario.
+- Los encabezados de `RESPUESTAS` se sincronizan cuando se agregan preguntas faltantes.
+
 ### Liberacion ejecutada
 - `npx clasp push -f`: exitoso, 14 archivos subidos.
 - `npx clasp version "v27 - aclarar tiempos de relevamiento"`: creada version 27.

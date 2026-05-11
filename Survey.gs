@@ -14,11 +14,12 @@ function getCatalogMap_() {
 }
 
 function getSurveySchema() {
-  var SCHEMA_CACHE_KEY = 'artesanos_schema_v1';
+  var SCHEMA_CACHE_KEY = 'artesanos_schema_v2';
   var sc = CacheService.getScriptCache();
   var cachedJson = sc.get(SCHEMA_CACHE_KEY);
   if (cachedJson) { try { return JSON.parse(cachedJson); } catch(e) {} }
 
+  ensureQuestionnaireSeedCurrent_();
   var qRows = getRowsAsObjects_(APP_CFG.SHEETS.QUESTIONNAIRE);
   if (!qRows.length) {
     seedCatalogs();

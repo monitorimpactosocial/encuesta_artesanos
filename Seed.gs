@@ -136,6 +136,10 @@ function getQuestionnaireSeed_() {
   Q.push(q_(5,s[1],s[2],5,'ingreso_artesania_mes_gs','Ingreso mensual aproximado por artesanía (Gs.)','number',false,null,null,false,true,''));
   Q.push(q_(5,s[1],s[2],6,'ingreso_artesania_banda','Banda de ingreso mensual por artesanía','select',false,{catalog:'banda_ingreso'},null,false,true,''));
   Q.push(q_(5,s[1],s[2],7,'ingreso_total_hogar_banda','Banda de ingreso mensual total del hogar','select',false,{catalog:'banda_ingreso'},null,false,true,''));
+  Q.push(q_(5,s[1],s[2],7.1,'ingreso_total_hogar_mes_gs','Ingreso mensual total aproximado del hogar, de todas las fuentes (Gs.)','number',false,null,null,false,true,'Incluya artesania, changas, salario, agricultura, ayuda familiar, subsidios y otras fuentes. Permite aproximar vulnerabilidad economica del hogar.'));
+  Q.push(q_(5,s[1],s[2],7.2,'personas_dependen_ingreso_hogar','Cantidad de personas que dependen de ese ingreso del hogar','number',false,null,null,false,true,'Contar a quienes viven del ingreso mensual declarado, aunque no aporten ingresos.'));
+  Q.push(q_(5,s[1],s[2],7.3,'personas_aportan_ingreso_hogar','Cantidad de personas del hogar que aportan ingresos','number',false,null,null,false,true,'Sirve para distinguir hogares con una sola persona proveedora de hogares con varios aportantes.'));
+  Q.push(q_(5,s[1],s[2],7.4,'ingreso_alcanza_necesidades','El ingreso mensual del hogar alcanza para cubrir necesidades basicas','select',false,{catalog:'suficiencia_ingreso'},null,false,true,'Considere alimentacion, salud, educacion, transporte, servicios y gastos de vivienda.'));
   Q.push(q_(5,s[1],s[2],8,'principal_fuente_ingreso','Principal fuente de ingreso del hogar','select',false,{catalog:'fuente_ingreso'},null,false,true,''));
   Q.push(q_(5,s[1],s[2],8.5,'principal_fuente_ingreso_otro','Especificar otra fuente de ingreso principal','text',false,null,{field:'principal_fuente_ingreso',equals:'Otra'},false,true,''));
   Q.push(q_(5,s[1],s[2],9,'principal_canal_venta','Canal principal de venta','select',false,{catalog:'canal_venta'},null,false,true,''));
@@ -183,6 +187,9 @@ function getQuestionnaireSeed_() {
   Q.push(q_(8,s[1],s[2],1,'conoce_paracel','¿Conoce a Paracel o sus programas sociales?','buttons',false,{catalog:'si_no_parcial'},null,false,true,''));
   Q.push(q_(8,s[1],s[2],2,'participacion_programa_previo','¿Participó antes en actividades, capacitaciones o programas vinculados a Paracel?','buttons',false,{catalog:'si_no'},null,false,true,''));
   Q.push(q_(8,s[1],s[2],3,'interes_programa_paracel','Si en algún momento se ofrecieran programas de apoyo artesanal en la zona, ¿estaría dispuesto/a a participar?','buttons',false,{catalog:'si_no'},null,false,true,'Esta pregunta es solo informativa. No implica compromiso ni promesa de ningún programa concreto.'));
+  Q.push(q_(8,s[1],s[2],3.1,'desea_recibir_info_paracel','Desea recibir informacion sobre Paracel o actividades relacionadas','buttons',false,{catalog:'si_no'},null,false,true,'Registrar solo preferencia de comunicacion. No implica compromiso de envio ni participacion.'));
+  Q.push(q_(8,s[1],s[2],3.2,'formato_info_paracel','Formato preferido para recibir informacion sobre Paracel','checkbox_group',false,{catalog:'formato_info_paracel'},null,false,true,'Puede marcar mas de una opcion.'));
+  Q.push(q_(8,s[1],s[2],3.3,'idioma_info_paracel','Idioma preferido para recibir informacion sobre Paracel','checkbox_group',false,{catalog:'idioma_info_paracel'},null,false,true,'Puede marcar mas de una opcion si prefiere comunicacion bilingue.'));
   Q.push(q_(8,s[1],s[2],4,'prioridad_apoyo','Apoyo que considera más prioritario para su actividad artesanal','select',false,{catalog:'prioridad_apoyo'},null,false,true,''));
   Q.push(q_(8,s[1],s[2],4.5,'prioridad_apoyo_otro','Especificar otro apoyo prioritario','text',false,null,{field:'prioridad_apoyo',equals:'Otro'},false,true,''));
   Q.push(q_(8,s[1],s[2],5,'otras_necesidades','Otras necesidades o sugerencias','textarea',false,null,null,false,true,''));
@@ -231,6 +238,7 @@ function getCatalogSeed_() {
   ['Herramientas manuales','Herramientas eléctricas','Máquina de coser','Mesa/banco de trabajo','Horno','Moldes','Tintes/pinturas','Equipo de seguridad','Teléfono para ventas','Otro'].forEach(function(x,i){ add('herramientas', normalizeKey_(x), x, i+1); });
   ['Diseño y terminación','Costeo y precios','Administración básica','Marketing y redes sociales','Fotografía de productos','Calidad y empaque','Formalización/RUC','Acceso a crédito','Asociatividad','Seguridad laboral','Sostenibilidad ambiental','Otro'].forEach(function(x,i){ add('temas_capacitacion', normalizeKey_(x), x, i+1); });
   ['Menos de ₲ 500.000','₲ 500.000 a ₲ 1.000.000','₲ 1.000.001 a ₲ 2.000.000','₲ 2.000.001 a ₲ 3.000.000','₲ 3.000.001 a ₲ 5.000.000','Más de ₲ 5.000.000','No informa'].forEach(function(x,i){ add('banda_ingreso', normalizeKey_(x), x, i+1); });
+  ['Alcanza bien','Alcanza justo','No alcanza algunos meses','No alcanza la mayoria de los meses','No sabe / No responde'].forEach(function(x,i){ add('suficiencia_ingreso', normalizeKey_(x), x, i+1); });
   ['Artesanía','Agricultura','Ganadería','Pesca','Trabajo asalariado','Comercio','Remesas/ayuda familiar','Programas sociales','Otra'].forEach(function(x,i){ add('fuente_ingreso', normalizeKey_(x), x, i+1); });
   ['Venta directa en la comunidad','Feria local','Feria regional/nacional','Intermediario/revendedor','Pedido personalizado','Tienda/local comercial','WhatsApp','Facebook/Instagram','Otro'].forEach(function(x,i){ add('canal_venta', normalizeKey_(x), x, i+1); });
   ['WhatsApp','Facebook','Instagram','TikTok','Marketplace','Catálogo digital','No usa'].forEach(function(x,i){ add('redes_digitales', normalizeKey_(x), x, i+1); });
@@ -243,6 +251,8 @@ function getCatalogSeed_() {
   ['Cortes/pinchazos','Polvo/humo','Ruido','Posturas forzadas','Uso de químicos/pinturas','Quemaduras/calor','Carga pesada','Iluminación insuficiente','Ninguno relevante','Otro'].forEach(function(x,i){ add('riesgos_trabajo', normalizeKey_(x), x, i+1); });
   ['Se reutilizan','Se venden/entregan para reciclaje','Se queman','Se tiran con basura común','Se entierran','No genera residuos relevantes','Otro'].forEach(function(x,i){ add('manejo_residuos', normalizeKey_(x), x, i+1); });
   ['Herramientas/equipos','Materia prima','Capacitación técnica','Diseño, calidad y empaque','Comercialización y ferias','Redes sociales/ventas digitales','Formalización','Financiamiento','Organización/asociatividad','Otro'].forEach(function(x,i){ add('prioridad_apoyo', normalizeKey_(x), x, i+1); });
+  ['Reunion comunitaria','WhatsApp','Llamada telefonica','Mensaje de texto/SMS','Radio comunitaria','Material impreso','Audio explicativo','Video corto','Visita de facilitador/a','Otro'].forEach(function(x,i){ add('formato_info_paracel', normalizeKey_(x), x, i+1); });
+  ['Guarani','Castellano','Guarani y castellano','Portugues','Otro'].forEach(function(x,i){ add('idioma_info_paracel', normalizeKey_(x), x, i+1); });
   ['Tekoporã','Adultos Mayores','Abrazo','Sembrando Oportunidades','Pensión alimentaria adulto mayor','Otro programa / subsidio'].forEach(function(x,i){ add('subsidio_estado', normalizeKey_(x), x, i+1); });
   ['Falta de garantías o avales','Altas tasas de interés','Trámites y requisitos complejos','Falta de información sobre opciones','Historial crediticio negativo','Falta de documentación (cédula, RUC)','Monto ofrecido insuficiente','Distancia a entidades financieras','No necesita crédito actualmente','Otro'].forEach(function(x,i){ add('dificultades_credito', normalizeKey_(x), x, i+1); });
   return C;
@@ -253,6 +263,7 @@ function seedQuestionnaire() {
   var data = rows.map(function(r) { return QUESTIONNAIRE_HEADERS_.map(function(h) { return r[h] || ''; }); });
   replaceSheetData_(APP_CFG.SHEETS.QUESTIONNAIRE, QUESTIONNAIRE_HEADERS_, data);
   try { CacheService.getScriptCache().remove('artesanos_schema_v1'); } catch(e) {}
+  try { CacheService.getScriptCache().remove('artesanos_schema_v2'); } catch(e) {}
   return { ok: true, rows: rows.length };
 }
 
@@ -261,7 +272,47 @@ function seedCatalogs() {
   var data = rows.map(function(r) { return CATALOG_HEADERS_.map(function(h) { return r[h] || ''; }); });
   replaceSheetData_(APP_CFG.SHEETS.CATALOGS, CATALOG_HEADERS_, data);
   try { CacheService.getScriptCache().remove('artesanos_schema_v1'); } catch(e) {}
+  try { CacheService.getScriptCache().remove('artesanos_schema_v2'); } catch(e) {}
   return { ok: true, rows: rows.length };
+}
+
+function ensureQuestionnaireSeedCurrent_() {
+  ensureHeaders_(APP_CFG.SHEETS.QUESTIONNAIRE, QUESTIONNAIRE_HEADERS_);
+  ensureHeaders_(APP_CFG.SHEETS.CATALOGS, CATALOG_HEADERS_);
+  var existingQ = {};
+  getRowsAsObjects_(APP_CFG.SHEETS.QUESTIONNAIRE).forEach(function(r) {
+    var field = normalizeText_(r.field_name);
+    if (field) existingQ[field] = true;
+  });
+  var addedQ = 0;
+  getQuestionnaireSeed_().forEach(function(r) {
+    var field = normalizeText_(r.field_name);
+    if (!field || existingQ[field]) return;
+    appendObject_(APP_CFG.SHEETS.QUESTIONNAIRE, r, QUESTIONNAIRE_HEADERS_);
+    existingQ[field] = true;
+    addedQ++;
+  });
+
+  var existingC = {};
+  getRowsAsObjects_(APP_CFG.SHEETS.CATALOGS).forEach(function(r) {
+    var key = normalizeText_(r.catalogo) + '|' + normalizeText_(r.codigo);
+    if (key !== '|') existingC[key] = true;
+  });
+  var addedC = 0;
+  getCatalogSeed_().forEach(function(r) {
+    var key = normalizeText_(r.catalogo) + '|' + normalizeText_(r.codigo);
+    if (key === '|' || existingC[key]) return;
+    appendObject_(APP_CFG.SHEETS.CATALOGS, r, CATALOG_HEADERS_);
+    existingC[key] = true;
+    addedC++;
+  });
+
+  if (addedQ || addedC) {
+    syncHeaders_(APP_CFG.SHEETS.RESPONSES, getResponseHeaders_());
+    try { CacheService.getScriptCache().remove('artesanos_schema_v1'); } catch(e) {}
+    try { CacheService.getScriptCache().remove('artesanos_schema_v2'); } catch(e) {}
+  }
+  return { ok: true, addedQuestions: addedQ, addedCatalogs: addedC };
 }
 
 function seedEditions_() {
