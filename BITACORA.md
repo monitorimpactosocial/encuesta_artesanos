@@ -1,5 +1,79 @@
 # Bitacora operativa - Encuesta Artesanos Isla Hermosa
 
+## 2026-05-12 - Mapa territorial: logistica y costeo con propuesta tecnica-economica
+
+### Pedido recibido
+- Mejorar la pestana con informacion logistica y de costeo.
+- Incorporar la informacion de `Ing Cristina VillalbaPROPUESTA TECNICA ECONOMICA.PDF`.
+- Permitir alterar costos por encuesta, cantidad de encuestadores, cantidad de guias locales, etc.
+
+### Fuente revisada
+- Archivo: `C:\Users\DiegoMeza\OneDrive - PARACEL S.A\MONITOREO_IMPACTO_SOCIAL_PARACEL\ENCUESTA_ARTESANOS_ISLA_HERMOSA\Ing Cristina VillalbaPROPUESTA TECNICA ECONOMICA.PDF`.
+- El PDF esta escaneado; `PyPDF2` detecto 3 paginas pero sin texto extraible.
+- Se renderizaron paginas a imagen para lectura visual.
+- Datos economicos leidos de la propuesta:
+  - Servicio encuestas: `Gs. 48.000` por ficha.
+  - Movilidad: `Gs. 11.000` por ficha.
+  - Viaticos: `Gs. 11.000` por ficha.
+  - Total unitario: `Gs. 70.000`, IVA incluido.
+  - Fecha de propuesta: Concepcion, `11/05/2026`.
+- Alcance tecnico relevante:
+  - recoleccion y digitacion de informacion social, economica y de percepcion;
+  - fichas completas cargadas en enlace/aplicativo provisto;
+  - informe final con actividades, comunidades/localidades visitadas y cantidad de viviendas/familias encuestadas;
+  - equipo con experiencia territorial y disponibilidad de movilidad/equipos.
+
+### Cambios aplicados
+- `Client.html`, vista `Mapa territorial` / `Duracion estimada del relevamiento`:
+  - Se agrego bloque `Costeo logistico editable`.
+  - Valores base cargados desde la propuesta:
+    - servicio por ficha `48000`,
+    - movilidad por ficha `11000`,
+    - viaticos por ficha `11000`.
+  - Se permite simular:
+    - encuestadores trabajando,
+    - horas efectivas por dia,
+    - duracion promedio de encuesta,
+    - guias locales,
+    - costo por guia/dia,
+    - supervisores,
+    - costo por supervisor/dia,
+    - extra por encuestador/dia,
+    - otros costos fijos.
+  - Se agregaron KPIs:
+    - costo unitario por ficha,
+    - subtotal de fichas asignadas,
+    - logistica adicional simulada,
+    - costo total del escenario.
+  - Se agrego tabla de rubros con formulas visibles:
+    - servicio de encuestas,
+    - movilidad,
+    - viaticos,
+    - guias locales,
+    - supervision,
+    - extra encuestadores,
+    - otros fijos,
+    - total y costo resultante por encuesta.
+- `Styles.html`:
+  - Estilo `inner-cost` para separar el bloque de costeo dentro del panel de tiempos/logistica.
+
+### Verificacion local
+- Script de `Client.html` extraido desde `<script>`: `node --check --input-type=commonjs` sin errores.
+- `Styles.html` leido sin errores.
+
+### Pendiente inmediato
+- Resuelto en esta misma pasada.
+
+### Publicacion y verificacion
+- Se eliminaron las imagenes temporales generadas para leer el PDF escaneado.
+- `npx clasp push -f`: exitoso, 14 archivos subidos.
+- `npx clasp version "v36 - costeo logistico propuesta"`: version 36 creada.
+- `npx clasp deploy -i AKfycbwTpwf0GoONoPOEJnE-IxoDiYofcB54c_aQBoPlvaCrjYcJ_RNhdxqJC9dEClZH0Kk -V 36 -d "v36 - costeo logistico propuesta"`: deployment publico actualizado a `@36`.
+- Verificacion viva por descarga HTML de `/exec`:
+  - encontrado `Costeo logistico editable`.
+  - encontrados valores base `48000` y `11000`.
+  - encontrados `Guias locales`, `Servicio encuesta`, `Movilidad por ficha`, `Viaticos por ficha` y `costo total escenario`.
+
 ## 2026-05-11 - Roster de hogar: parentesco guiado, discapacidad clara y conteos derivados
 
 ### Pedido recibido
