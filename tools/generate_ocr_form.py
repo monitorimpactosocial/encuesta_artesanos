@@ -223,6 +223,7 @@ class Form:
         self.c.setFillColor(LIGHT)
         self.c.rect(x, y - 10, w, 11, fill=1, stroke=0)
         self.c.setStrokeColor(LINE)
+        self.c.setFillColor(TEXT)
         self.c.setFont("Helvetica-Bold", 5.5)
         cx = x
         for h, cw in zip(headers, widths):
@@ -239,6 +240,7 @@ class Form:
                 cx += cw
             y -= 12
         y -= 6
+        self.c.setFillColor(TEXT)
         for line in wrap("PAR: JH jefe/a, CO conyuge, HI hijo/a, PA padre/madre, HE hermano/a, NI nieto/a, AB abuelo/a, OP otro pariente, NP no pariente, OT otro. S: F/M/O. NR: no recuerda fecha de nacimiento. DIS: S/N. Tipo: FIS, VIS, AUD, INT, PSI, HAB, MUL, OT.", w, size=5.6):
             self.c.setFont("Helvetica", 5.6)
             self.c.drawString(x, y, line)
@@ -446,14 +448,14 @@ def build_page_one(f: Form) -> None:
     y = f.line_field(left + 8, y, "I17 Contacto alternativo", 150)
     f.choice_row(left + 8, y, "I18 Nacionalidad", [("1", "Paraguaya"), ("2", "Bras"), ("3", "Arg"), ("OT", "Otra")], COL_W - 16)
 
-    y = f.block(right, top, COL_W, 205, "Integrantes del hogar", "2")
+    y = f.block(right, top, COL_W, 250, "Integrantes del hogar", "2")
     y = f.roster(right + 8, y, COL_W - 16)
     y = f.digit_boxes(right + 8, y, "H02 Total integrantes", 2)
     y = f.choice_row(right + 8, y, "H03 Hay discapacidad en hogar", [("S", "Si"), ("N", "No")], COL_W - 16)
     y = f.choice_row(right + 8, y, "H04 Tipo discapacidad hogar", [("FIS", "Fis"), ("VIS", "Vis"), ("AUD", "Aud"), ("INT", "Int"), ("PSI", "Psic"), ("HAB", "Habla"), ("MUL", "Mult"), ("OT", "Otra")], COL_W - 16, True)
     f.line_field(right + 8, y, "H05 Detalle OT", 150)
 
-    y = f.block(right, top - 217, COL_W, 310, "Vivienda, servicios y proteccion", "3")
+    y = f.block(right, top - 262, COL_W, 335, "Vivienda, servicios y proteccion", "3")
     y = f.choice_row(right + 8, y, "V01 Tipo vivienda", [("1", "Casa"), ("2", "Rancho"), ("3", "Pieza"), ("4", "Impro"), ("OT", "Otro")], COL_W - 16)
     y = f.choice_row(right + 8, y, "V02 Tenencia", [("1", "Propia"), ("2", "Cedida"), ("3", "Alq"), ("4", "Ocup"), ("OT", "Otra")], COL_W - 16)
     y = f.choice_row(right + 8, y, "V03 Pared", [("1", "Lad"), ("2", "Mad"), ("3", "Adobe"), ("4", "Chapa"), ("5", "Rec"), ("OT", "Otro")], COL_W - 16)
@@ -469,8 +471,8 @@ def build_page_one(f: Form) -> None:
     y = f.choice_row(right + 8, y, "V13 Seguro/cobertura salud", [("1", "IPS"), ("2", "Publico"), ("3", "Priv"), ("4", "Ning"), ("NS", "Ns/Nr")], COL_W - 16)
     f.choice_row(right + 8, y, "V14 Ingreso alcanza necesidades", [("1", "Bien"), ("2", "Justo"), ("3", "No algunos meses"), ("4", "No mayoria"), ("NS", "Ns/Nr")], COL_W - 16)
 
-    f.block(M, 300, W - 2 * M, 255, "Mapa de cuadras, manzanas, calles y viviendas mapeadas", None)
-    f.isla_map_panel(M, 300, W - 2 * M, 255)
+    f.block(M, 275, W - 2 * M, 230, "Mapa de cuadras, manzanas, calles y viviendas mapeadas", None)
+    f.isla_map_panel(M, 275, W - 2 * M, 230)
 
 
 def build_page_two(f: Form) -> None:

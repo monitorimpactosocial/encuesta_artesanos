@@ -1,5 +1,35 @@
 # Bitacora operativa - Encuesta Artesanos Isla Hermosa
 
+## 2026-05-13 - Correccion de encabezados invisibles y solapamientos en boleta OCR
+
+### Problema reportado
+- En la boleta OCR algunos encabezados no salian o no se veian.
+- En particular, la tabla `H01 Integrantes del hogar` mostraba la franja de encabezados sin textos visibles.
+- Algunas preguntas quedaban muy cerca del bloque siguiente, con riesgo de solapamiento visual.
+
+### Causa identificada
+- En `tools/generate_ocr_form.py`, la tabla de integrantes pintaba el fondo gris del encabezado y luego dibujaba los textos sin restaurar el color negro; por eso los encabezados quedaban casi invisibles.
+- El bloque de hogar era demasiado bajo para incluir tabla, leyenda, H02, H03, H04 y H05 con aire suficiente.
+- El bloque de mapa ocupaba demasiado alto respecto del cierre del bloque de vivienda.
+
+### Cambios aplicados
+- Se restauro el color de texto `TEXT` antes de dibujar encabezados de tabla y leyendas.
+- Se aumento la altura del bloque `2. Integrantes del hogar`.
+- Se bajo el inicio del bloque `3. Vivienda, servicios y proteccion` para respetar el nuevo alto de hogar.
+- Se compacto el panel de mapa territorial para evitar que tape o invada preguntas de vivienda.
+
+### Verificacion
+- Se regenero `FORMULARIO_OCR_OFICIO_ARTESANOS.pdf`.
+- Se verifico con `PyPDF2`:
+  - paginas: `2`;
+  - pagina 1: `612.0 x 1008.0`;
+  - pagina 2: `612.0 x 1008.0`.
+- Se renderizaron vistas previas y se confirmo visualmente:
+  - encabezados visibles en la tabla de integrantes;
+  - H02, H03, H04 y H05 dentro del bloque de hogar;
+  - vivienda sin invadir el mapa;
+  - pagina 2 sin solapamientos visibles.
+
 ## 2026-05-13 - Boleta OCR con cuadritos alineados y mapa territorial impreso
 
 ### Pedido recibido
