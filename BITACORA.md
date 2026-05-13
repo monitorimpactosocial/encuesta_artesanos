@@ -1,5 +1,43 @@
 # Bitacora operativa - Encuesta Artesanos Isla Hermosa
 
+## 2026-05-13 - Boleta OCR con cuadritos alineados y mapa territorial impreso
+
+### Pedido recibido
+- Los cuadritos seguian desordenados.
+- Se solicito usar letras mas chicas para agregar mas texto y dejar mas evidentes pedidos, notas y codigos.
+- Se pidio reemplazar el croquis por un mapa de cuadras, manzanas y calles de Isla Hermosa.
+
+### Cambios aplicados
+- `tools/generate_ocr_form.py`:
+  - Se achico la tipografia de etiquetas, codigos y opciones.
+  - Se cambio la ubicacion de opciones a una grilla de columnas fijas, evitando que las casillas queden en posiciones irregulares segun el largo de cada texto.
+  - Se redujo el tamano de casillas y se estabilizo el espaciado entre filas.
+  - Se agregaron mas textos operativos dentro del PDF sin aumentar paginas.
+- `FORMULARIO_OCR_OFICIO_ARTESANOS.pdf`:
+  - Mantiene 2 paginas oficio/legal.
+  - La pagina 1 incluye un mapa operativo impreso de Isla Hermosa / Isla Tuyu:
+    - limite territorial desde `MapData.gs`;
+    - 69 viviendas mapeadas desde `MapData.gs`;
+    - caminos/calles obtenidos desde OpenStreetMap Overpass;
+    - malla de referencia M1-M16 para manzanas/sectores operativos en papel;
+    - notas para ubicar vivienda, calle o manzana.
+  - Se reemplazo el area de croquis por el mapa territorial y un panel de control en campo.
+- `FORMULARIO_OCR_ISLA_HERMOSA_ROADS_CACHE.json`:
+  - Cache local de caminos/calles de OpenStreetMap para que el generador pueda funcionar sin depender siempre de internet.
+
+### Verificacion
+- Se regenero el PDF y se verifico con `PyPDF2`:
+  - paginas: `2`;
+  - pagina 1: `612.0 x 1008.0`;
+  - pagina 2: `612.0 x 1008.0`;
+  - tamano final aproximado: `34268` bytes.
+- Se renderizo vista previa de ambas paginas.
+- Se confirmo visualmente:
+  - casillas mas alineadas;
+  - textos y codigos mas pequenos pero legibles;
+  - mapa territorial incorporado en pagina 1;
+  - bloque de vivienda visible antes del mapa.
+
 ## 2026-05-13 - Redisenho visual de boleta OCR para impresion
 
 ### Pedido recibido

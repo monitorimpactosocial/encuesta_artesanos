@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+import json
+import re
+import urllib.parse
+import urllib.request
 from pathlib import Path
 
 from reportlab.lib import colors
@@ -11,6 +15,7 @@ from reportlab.pdfgen import canvas
 ROOT = Path(__file__).resolve().parents[1]
 PDF_PATH = ROOT / "FORMULARIO_OCR_OFICIO_ARTESANOS.pdf"
 DICT_PATH = ROOT / "FORMULARIO_OCR_OFICIO_ARTESANOS_DICCIONARIO.md"
+ROADS_CACHE_PATH = ROOT / "FORMULARIO_OCR_ISLA_HERMOSA_ROADS_CACHE.json"
 
 W, H = legal
 M = 22
@@ -42,6 +47,56 @@ def wrap(text: str, max_width: float, font: str = "Helvetica", size: float = 6.2
     if current:
         lines.append(current)
     return lines or [""]
+
+
+def load_field_map_data() -> dict:
+    text = (ROOT / "MapData.gs").read_text(encoding="utf-8")
+    match = re.search(r"var FIELD_MAP_DATA_ = (\{.*?\});", text, re.S)
+    if not match:
+        return {}
+    return json.loads(match.group(1))
+
+
+def fetch_or_load_roads(data: dict) -> list[dict]:
+    if ROADS_CACHE_PATH.exists():
+        try:
+            return json.loads(ROADS_CACHE_PATH.read_text(encoding="utf-8")).get("roads", [])
+        except Exception:
+            pass
+    try:
+        (south, west), (north, east) = data["bounds"]
+        query = f"""
+[out:json][timeout:25];
+(
+  way["highway"]({south},{west},{north},{east});
+);
+out geom;
+"""
+        body = urllib.parse.urlencode({"data": query}).encode("utf-8")
+        req = urllib.request.Request(
+            "https://overpass-api.de/api/interpreter",
+            data=body,
+            headers={"User-Agent": "encuesta-artesanos-ocr-form/1.0"},
+        )
+        with urllib.request.urlopen(req, timeout=35) as response:
+            raw = json.loads(response.read().decode("utf-8"))
+        roads = []
+        for item in raw.get("elements", []):
+            geom = item.get("geometry") or []
+            if len(geom) < 2:
+                continue
+            tags = item.get("tags") or {}
+            roads.append(
+                {
+                    "name": tags.get("name") or "",
+                    "highway": tags.get("highway") or "",
+                    "points": [[p["lat"], p["lon"]] for p in geom if "lat" in p and "lon" in p],
+                }
+            )
+        ROADS_CACHE_PATH.write_text(json.dumps({"source": "OpenStreetMap Overpass", "roads": roads}, ensure_ascii=False, indent=2), encoding="utf-8")
+        return roads
+    except Exception:
+        return []
 
 
 class Form:
@@ -97,12 +152,12 @@ class Form:
         self.c.drawString(x, y, text)
 
     def line_field(self, x: float, y: float, label: str, line_w: float, code_w: float = 78) -> float:
-        self.label(x, y, label, 6.0)
+        self.label(x, y, label, 5.35)
         x2 = x + code_w
         self.c.setStrokeColor(LINE)
         self.c.setLineWidth(0.45)
         self.c.line(x2, y - 1, x2 + line_w, y - 1)
-        return y - 13
+        return y - 11
 
     def text_box(self, x: float, y: float, w: float, h: float, label: str) -> float:
         self.label(x, y, label, 6.0)
@@ -112,31 +167,43 @@ class Form:
         return y - h - 11
 
     def digit_boxes(self, x: float, y: float, label: str, digits: int, box: float = 8.5) -> float:
-        self.label(x, y, label, 6.0)
-        start = x + width(label, "Helvetica-Bold", 6.0) + 6
+        self.label(x, y, label, 5.35)
+        start = x + width(label, "Helvetica-Bold", 5.35) + 6
         self.c.setStrokeColor(LINE)
         for i in range(digits):
-            self.c.rect(start + i * (box + 1.5), y - box + 2, box, box, fill=0, stroke=1)
-        return y - 13
+            self.c.rect(start + i * (box + 1.2), y - box + 2, box, box, fill=0, stroke=1)
+        return y - 11
 
     def choice_row(self, x: float, y: float, label: str, opts: list[tuple[str, str]], max_w: float, multi: bool = False) -> float:
         suffix = "MULTI" if multi else "UNA"
-        self.label(x, y, f"{label} ({suffix})", 5.95)
-        y -= 10
-        cx = x
-        self.c.setFont("Helvetica", 5.75)
+        self.label(x, y, f"{label} ({suffix})", 5.2)
+        y -= 8
+        longest = max((len(f"{code} {text}") for code, text in opts), default=0)
+        if longest > 17:
+            cols = 2
+        elif len(opts) <= 3:
+            cols = 3
+        elif len(opts) <= 6:
+            cols = 3
+        else:
+            cols = 4
+        col_w = max_w / cols
+        self.c.setFont("Helvetica", 4.95)
         self.c.setFillColor(TEXT)
-        for code, text in opts:
+        for idx, (code, text) in enumerate(opts):
+            row = idx // cols
+            col = idx % cols
+            cx = x + col * col_w
+            cy = y - row * 9.5
             item = f"{code} {text}"
-            item_w = 10 + width(item, "Helvetica", 5.75) + 8
-            if cx + item_w > x + max_w:
-                cx = x
-                y -= 11
             self.c.setStrokeColor(LINE)
-            self.c.rect(cx, y - 5.5, 6.2, 6.2, fill=0, stroke=1)
-            self.c.drawString(cx + 8, y - 4.6, item)
-            cx += item_w
-        return y - 10
+            self.c.rect(cx, cy - 5.3, 5.6, 5.6, fill=0, stroke=1)
+            clipped = item
+            while width(clipped, "Helvetica", 4.95) > col_w - 9 and len(clipped) > 4:
+                clipped = clipped[:-2].rstrip() + "."
+            self.c.drawString(cx + 7.2, cy - 4.5, clipped)
+        rows = (len(opts) + cols - 1) // cols
+        return y - rows * 9.5 - 4
 
     def note_lines(self, x: float, y: float, w: float, rows: int, label: str) -> float:
         self.label(x, y, label, 6.0)
@@ -177,6 +244,165 @@ class Form:
             self.c.drawString(x, y, line)
             y -= 7
         return y - 3
+
+    def isla_map_panel(self, x: float, y: float, w: float, h: float) -> None:
+        data = load_field_map_data()
+        roads = fetch_or_load_roads(data) if data else []
+        inner = 9
+        map_w = w * 0.62
+        map_h = h - 42
+        map_x = x + inner
+        map_y = y - 27
+        legend_x = map_x + map_w + 12
+        legend_w = w - map_w - 3 * inner - 12
+
+        self.c.setFillColor(colors.white)
+        self.c.rect(map_x, map_y - map_h, map_w, map_h, fill=1, stroke=0)
+        self.c.setStrokeColor(MID)
+        self.c.rect(map_x, map_y - map_h, map_w, map_h, fill=0, stroke=1)
+
+        if not data:
+            self.label(map_x + 8, map_y - 18, "Mapa territorial no disponible en MapData.gs", 6.2)
+            return
+
+        points = data.get("boundary", []) + [[p["lat"], p["lng"]] for p in data.get("dwellings", [])]
+        for road in roads:
+            points.extend(road.get("points", []))
+        min_lat = min(p[0] for p in points)
+        max_lat = max(p[0] for p in points)
+        min_lng = min(p[1] for p in points)
+        max_lng = max(p[1] for p in points)
+        pad_lat = max((max_lat - min_lat) * 0.04, 0.0003)
+        pad_lng = max((max_lng - min_lng) * 0.04, 0.0003)
+        min_lat -= pad_lat
+        max_lat += pad_lat
+        min_lng -= pad_lng
+        max_lng += pad_lng
+
+        def xy(lat: float, lng: float) -> tuple[float, float]:
+            px = map_x + (lng - min_lng) / (max_lng - min_lng) * map_w
+            py = map_y - map_h + (lat - min_lat) / (max_lat - min_lat) * map_h
+            return px, py
+
+        # Malla operativa de cuadras/manzanas: no reemplaza catastro, sirve para referencia en papel.
+        self.c.setStrokeColor(colors.HexColor("#DCDCDC"))
+        self.c.setLineWidth(0.3)
+        self.c.setDash(1, 3)
+        cols, rows = 4, 4
+        for i in range(1, cols):
+            gx = map_x + map_w * i / cols
+            self.c.line(gx, map_y - map_h, gx, map_y)
+        for j in range(1, rows):
+            gy = map_y - map_h + map_h * j / rows
+            self.c.line(map_x, gy, map_x + map_w, gy)
+        self.c.setDash()
+        self.c.setFillColor(colors.HexColor("#777777"))
+        self.c.setFont("Helvetica", 5.0)
+        n = 1
+        for r in range(rows):
+            for col in range(cols):
+                self.c.drawString(map_x + col * map_w / cols + 3, map_y - r * map_h / rows - 7, f"M{n}")
+                n += 1
+
+        # Caminos desde OSM/Overpass.
+        for road in roads:
+            pts = [xy(lat, lng) for lat, lng in road.get("points", [])]
+            if len(pts) < 2:
+                continue
+            kind = road.get("highway", "")
+            if kind in {"tertiary", "secondary", "primary"}:
+                self.c.setStrokeColor(colors.HexColor("#595959"))
+                self.c.setLineWidth(1.2)
+            elif kind in {"track", "unclassified"}:
+                self.c.setStrokeColor(colors.HexColor("#7A7A7A"))
+                self.c.setLineWidth(0.75)
+            else:
+                self.c.setStrokeColor(colors.HexColor("#9A9A9A"))
+                self.c.setLineWidth(0.55)
+            path = self.c.beginPath()
+            path.moveTo(pts[0][0], pts[0][1])
+            for px, py in pts[1:]:
+                path.lineTo(px, py)
+            self.c.drawPath(path, stroke=1, fill=0)
+
+        boundary = [xy(lat, lng) for lat, lng in data.get("boundary", [])]
+        if boundary:
+            path = self.c.beginPath()
+            path.moveTo(boundary[0][0], boundary[0][1])
+            for px, py in boundary[1:]:
+                path.lineTo(px, py)
+            path.close()
+            self.c.setFillColor(colors.Color(0.92, 0.92, 0.92, alpha=0.18))
+            self.c.setStrokeColor(colors.black)
+            self.c.setLineWidth(0.8)
+            self.c.drawPath(path, stroke=1, fill=0)
+
+        self.c.setFillColor(colors.black)
+        self.c.setStrokeColor(colors.white)
+        self.c.setLineWidth(0.25)
+        for p in data.get("dwellings", []):
+            px, py = xy(p["lat"], p["lng"])
+            self.c.circle(px, py, 1.55, fill=1, stroke=1)
+        for p in data.get("dwellings", []):
+            if p.get("n") in {1, 10, 20, 30, 40, 50, 60, 69}:
+                px, py = xy(p["lat"], p["lng"])
+                self.c.setFillColor(TEXT)
+                self.c.setFont("Helvetica", 4.7)
+                self.c.drawString(px + 2, py + 1, str(p["n"]))
+
+        # Flecha norte y escala grafica simple.
+        self.c.setFillColor(TEXT)
+        self.c.setFont("Helvetica-Bold", 6)
+        self.c.drawString(map_x + map_w - 20, map_y - 10, "N")
+        self.c.line(map_x + map_w - 14, map_y - 29, map_x + map_w - 14, map_y - 14)
+        self.c.line(map_x + map_w - 14, map_y - 14, map_x + map_w - 18, map_y - 20)
+        self.c.line(map_x + map_w - 14, map_y - 14, map_x + map_w - 10, map_y - 20)
+        self.c.setLineWidth(1)
+        self.c.line(map_x + 10, map_y - map_h + 14, map_x + 70, map_y - map_h + 14)
+        self.c.setFont("Helvetica", 5)
+        self.c.drawString(map_x + 10, map_y - map_h + 18, "escala referencial")
+
+        # Leyenda y pedidos de campo.
+        self.c.setFillColor(TEXT)
+        self.c.setFont("Helvetica-Bold", 6.2)
+        self.c.drawString(legend_x, map_y - 2, "Mapa operativo Isla Hermosa / Isla Tuyu")
+        self.c.setFont("Helvetica", 5.3)
+        legend_lines = [
+            f"Viviendas mapeadas: {len(data.get('dwellings', []))}",
+            f"Caminos OSM/cache: {len(roads)}",
+            "M1-M16: manzanas/sectores de referencia para papel.",
+            "Linea negra: limite operativo. Lineas grises: caminos/calles.",
+            "Puntos negros: viviendas INE/mapeadas.",
+            "Usar este mapa para ubicar C02 y validar vivienda nueva/duplicada.",
+        ]
+        ly = map_y - 15
+        for item in legend_lines:
+            for line in wrap(item, legend_w, size=5.3):
+                self.c.drawString(legend_x, ly, line)
+                ly -= 7
+        ly -= 2
+        self.c.setFont("Helvetica-Bold", 5.4)
+        self.c.drawString(legend_x, ly, "Control en campo")
+        ly -= 8
+        self.c.setFont("Helvetica", 5.2)
+        controls = [
+            "[ ] vivienda ubicada",
+            "[ ] vivienda nueva",
+            "[ ] vivienda duplicada",
+            "[ ] ausente / cerrada",
+            "[ ] requiere guia local",
+            "[ ] camino dificil",
+        ]
+        for item in controls:
+            self.c.drawString(legend_x, ly, item)
+            ly -= 8
+        ly -= 3
+        self.label(legend_x, ly, "Notas de ubicacion / calle / manzana", 5.4)
+        ly -= 8
+        self.c.setStrokeColor(LINE)
+        for _ in range(6):
+            self.c.line(legend_x, ly, legend_x + legend_w, ly)
+            ly -= 12
 
 
 def build_page_one(f: Form) -> None:
@@ -243,19 +469,8 @@ def build_page_one(f: Form) -> None:
     y = f.choice_row(right + 8, y, "V13 Seguro/cobertura salud", [("1", "IPS"), ("2", "Publico"), ("3", "Priv"), ("4", "Ning"), ("NS", "Ns/Nr")], COL_W - 16)
     f.choice_row(right + 8, y, "V14 Ingreso alcanza necesidades", [("1", "Bien"), ("2", "Justo"), ("3", "No algunos meses"), ("4", "No mayoria"), ("NS", "Ns/Nr")], COL_W - 16)
 
-    y = f.block(M, 442, W - 2 * M, 384, "Control territorial para vincular papel, mapa y app", None)
-    f.c.setFont("Helvetica", 6.0)
-    notes = [
-        "C02 debe copiar exactamente el ID del punto/vivienda asignada en el mapa territorial.",
-        "Si no hay ID visible, anotar referencia fisica: camino, vecino, hito, escuela, capilla, arroyo o comercio cercano.",
-        "Resultado: [ ] ubicada  [ ] vivienda nueva  [ ] duplicada  [ ] ausente  [ ] rechazo",
-        "Acceso/camino: [ ] transitable  [ ] barro/agua  [ ] requiere guia local  [ ] acceso privado  [ ] otro",
-        "Fotos: [ ] entorno  [ ] frente vivienda  [ ] taller  [ ] materia prima  [ ] no autorizada",
-    ]
-    for note in notes:
-        f.c.drawString(M + 10, y, note)
-        y -= 11
-    f.note_lines(M + 10, y - 2, W - 2 * M - 20, 16, "Notas / croquis / aclaraciones para digitacion")
+    f.block(M, 300, W - 2 * M, 255, "Mapa de cuadras, manzanas, calles y viviendas mapeadas", None)
+    f.isla_map_panel(M, 300, W - 2 * M, 255)
 
 
 def build_page_two(f: Form) -> None:
