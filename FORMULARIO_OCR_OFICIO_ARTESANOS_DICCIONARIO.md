@@ -49,7 +49,3 @@ Discapacidad: `FIS` fisica/motriz, `VIS` visual, `AUD` auditiva, `INT` intelectu
 4. Pasar OCR solo a campos de linea.
 5. Validar manualmente los campos criticos: `C02`, `C08`, `C09`, `I01`, `H01`, importes y campos `OT`.
 6. Importar a una hoja temporal y luego transformar a la estructura usada por la app.
-
-## Nota de diseno
-
-La boleta comprime el instrumento en codigos para que sea operativa en campo. Para capacitacion del equipo se recomienda entregar una hoja separada con el significado completo de codigos largos si el equipo no esta familiarizado con ellos.

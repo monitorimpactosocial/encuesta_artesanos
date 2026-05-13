@@ -1,5 +1,34 @@
 # Bitacora operativa - Encuesta Artesanos Isla Hermosa
 
+## 2026-05-13 - Redisenho visual de boleta OCR para impresion
+
+### Pedido recibido
+- El PDF OCR se veia desordenado y desalineado.
+- Se pidio mejorar el diseno usando cuadros, bloques de preguntas, colores o escalas de grises considerando que sera impreso en papel.
+
+### Cambios aplicados
+- Se reconstruyo `tools/generate_ocr_form.py` con una composicion fija por bloques, en lugar de un flujo automatico de texto por columnas.
+- `FORMULARIO_OCR_OFICIO_ARTESANOS.pdf` mantiene 2 paginas oficio/legal, pero ahora usa:
+  - bloques con borde fino y esquinas suaves;
+  - encabezados en gris claro;
+  - fondos muy suaves para separar secciones sin gastar tinta en exceso;
+  - grilla de dos columnas alineadas;
+  - casillas OMR mas regulares;
+  - tablas y campos con espaciado mas estable;
+  - paneles inferiores amplios para control territorial y control de calidad OCR.
+- Se redistribuyo la pagina 2 para evitar que Produccion/Ventas se pise con Formalizacion/Ambiente.
+- Se verifico que el bloque de Produccion incluya `P12 Otros canales venta` y `P13 Barreras comercializacion` dentro del bloque correspondiente.
+
+### Verificacion
+- Se regenero el PDF con `python tools\generate_ocr_form.py`.
+- Se verifico con `PyPDF2`:
+  - paginas: `2`;
+  - pagina 1: `612.0 x 1008.0`;
+  - pagina 2: `612.0 x 1008.0`.
+- Se renderizaron vistas previas PNG de ambas paginas y se reviso visualmente:
+  - pagina 1 con bloques claros para control, identificacion, hogar, vivienda y control territorial;
+  - pagina 2 con bloques claros para actividad artesanal, produccion/ventas, formalizacion/ambiente, Paracel y control OCR.
+
 ## 2026-05-13 - Boleta OCR/OMR oficio para respaldo en papel
 
 ### Reconstruccion solicitada
