@@ -1,5 +1,51 @@
 # Bitacora operativa - Encuesta Artesanos Isla Hermosa
 
+## 2026-05-13 - Boleta OCR/OMR oficio para respaldo en papel
+
+### Pedido recibido
+- Evaluar y producir un documento PDF de una pagina tamano oficio, con maximo dos paginas si fuese necesario.
+- Comprimir todas las preguntas y opciones de respuesta de forma inteligente para permitir OCR/OMR y digitalizacion rapida de encuestas en papel.
+
+### Criterio aplicado
+- Se diseno una boleta de respaldo en papel, no un reemplazo de la app web.
+- La boleta prioriza lectura OMR para opciones cerradas mediante casillas y codigos cortos.
+- Los campos abiertos quedan reducidos a lineas OCR solo cuando son inevitables: nombres, referencias, detalles de "Otro", observaciones y ubicaciones.
+- Se preservan los cambios recientes del instrumento:
+  - consentimiento informado bloqueante: si no acepta, fin de encuesta;
+  - departamento fijo en Concepcion;
+  - barrio/localidad operativo Isla Hermosa / Isla Tuyu;
+  - fecha de nacimiento antes que edad, con marca de no recuerda/no declara;
+  - roster del hogar para evitar repetir conteos por sexo y edad;
+  - discapacidad con tipo especifico;
+  - separacion entre ingreso solo por artesania e ingreso total del hogar;
+  - personas que dependen del ingreso del hogar;
+  - tiempo de extraccion o traslado de materia prima;
+  - formato e idioma preferido para recibir informacion sobre Paracel;
+  - flujo alternativo para hogares sin artesanos, relevando interes o potencial artesanal.
+
+### Artefactos generados
+- `FORMULARIO_OCR_OFICIO_ARTESANOS.pdf`
+  - Formato: oficio/legal vertical.
+  - Extension verificada: 1 pagina.
+  - Tamano de pagina verificado: 612 x 1008 puntos, equivalente a 8.5 x 14 pulgadas.
+  - Contiene control, consentimiento, identificacion, hogar, vivienda, actividad artesanal/potencial, ventas, ingresos, formalizacion, ambiente, Paracel y cierre.
+- `FORMULARIO_OCR_OFICIO_ARTESANOS_DICCIONARIO.md`
+  - Reglas de captura OCR/OMR.
+  - Campos criticos para vincular papel con la app y el mapa territorial.
+  - Codigos transversales para parentesco, discapacidad y opciones comunes.
+  - Flujo sugerido de digitalizacion por lote.
+- `tools/generate_ocr_form.py`
+  - Generador reproducible del PDF y del diccionario.
+  - Permite regenerar el formulario luego de cambios en el cuestionario.
+
+### Verificacion
+- Se genero el PDF localmente con `reportlab`.
+- Se verifico con `PyPDF2`:
+  - paginas: `1`;
+  - pagina: `612.0 x 1008.0`;
+  - archivo generado correctamente.
+- Se renderizo una vista previa PNG para inspeccion visual; el archivo temporal quedo bloqueado por permisos de OneDrive al intentar eliminarlo, por lo que se mantiene fuera del control de versiones.
+
 ## 2026-05-12 - Mapa territorial: logistica y costeo con propuesta tecnica-economica
 
 ### Pedido recibido
