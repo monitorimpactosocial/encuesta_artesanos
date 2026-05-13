@@ -56,7 +56,7 @@ class TwoPageLegalForm:
         self.c.setFont("Helvetica-Bold", 9)
         self.c.drawString(MARGIN, H - 16, "ENCUESTA ARTESANOS ISLA HERMOSA / ISLA TUYU - BOLETA OCR/OMR")
         self.c.setFont("Helvetica", 5.8)
-        self.c.drawRightString(W - MARGIN, H - 15, f"Oficio/legal - pagina {self.page}, maximo 2 - instrumento digital v36")
+        self.c.drawRightString(W - MARGIN, H - 15, f"Oficio/legal - pagina {self.page}/2 - instrumento digital v36")
         self.c.setLineWidth(0.6)
         self.c.line(MARGIN, H - 20, W - MARGIN, H - 20)
         self.y = H - 27
@@ -72,6 +72,9 @@ class TwoPageLegalForm:
             self.col = 1
             self.y = H - 27
             return
+        self.new_page()
+
+    def new_page(self) -> None:
         self._footer()
         self.c.showPage()
         self.page += 1
@@ -85,16 +88,16 @@ class TwoPageLegalForm:
             self.next_col()
 
     def section(self, code: str, title: str) -> None:
-        self.ensure(17)
+        self.ensure(22)
         x = self.x()
         self.c.setFillColor(colors.HexColor("#EDEDED"))
-        self.c.rect(x, self.y - 10, COL_W, 11, fill=1, stroke=0)
+        self.c.rect(x, self.y - 13, COL_W, 15, fill=1, stroke=0)
         self.c.setFillColor(colors.black)
-        self.c.setFont("Helvetica-Bold", 6.4)
-        self.c.drawString(x + 2, self.y - 7.2, f"{code}. {title}")
-        self.y -= 14
+        self.c.setFont("Helvetica-Bold", 7.2)
+        self.c.drawString(x + 3, self.y - 9.2, f"{code}. {title}")
+        self.y -= 19
 
-    def line(self, text: str, size: float = 5.7, bold: bool = False, indent: float = 0, leading: float = 6.5) -> None:
+    def line(self, text: str, size: float = 6.2, bold: bool = False, indent: float = 0, leading: float = 8.2) -> None:
         lines = wrap_text(text, COL_W - indent, size=size)
         self.ensure(len(lines) * leading + 1)
         self.c.setFont("Helvetica-Bold" if bold else "Helvetica", size)
@@ -106,71 +109,101 @@ class TwoPageLegalForm:
     def boxes(self, code: str, label: str, options: list[tuple[str, str]], multi: bool = False) -> None:
         prefix = "MULTI" if multi else "UNA"
         text = f"{code} {label} ({prefix})"
-        self.line(text, size=5.55, bold=True)
+        self.line(text, size=6.0, bold=True, leading=7.5)
         x = self.x()
         row_x = x
         row_y = self.y + 1
-        self.c.setFont("Helvetica", 5.35)
+        self.c.setFont("Helvetica", 5.8)
         for value, desc in options:
             item = f"{value} {desc}"
-            item_w = 10 + stringWidth(item, "Helvetica", 5.35) + 5
+            item_w = 11 + stringWidth(item, "Helvetica", 5.8) + 6
             if row_x + item_w > x + COL_W:
-                self.y -= 8.2
+                self.y -= 10.5
                 row_x = x
                 row_y = self.y + 1
-            self.c.rect(row_x, row_y - 4, 4.5, 4.5, fill=0, stroke=1)
-            self.c.drawString(row_x + 6, row_y - 3.4, item)
+            self.c.rect(row_x, row_y - 5.1, 6.0, 6.0, fill=0, stroke=1)
+            self.c.drawString(row_x + 7.6, row_y - 4.3, item)
             row_x += item_w
-        self.y -= 9
+        self.y -= 11.5
         self.fields.append((code, label, "omr_multi" if multi else "omr_single", "; ".join(f"{v}={d}" for v, d in options)))
 
     def field(self, code: str, label: str, width_chars: int = 28, kind: str = "texto") -> None:
-        self.ensure(8)
+        self.ensure(11)
         x = self.x()
-        self.c.setFont("Helvetica-Bold", 5.55)
+        self.c.setFont("Helvetica-Bold", 6.0)
         self.c.drawString(x, self.y, f"{code} {label}:")
-        label_w = stringWidth(f"{code} {label}:", "Helvetica-Bold", 5.55) + 3
-        self.c.line(x + label_w, self.y - 1, min(x + COL_W, x + label_w + width_chars * 4.2), self.y - 1)
-        self.y -= 7
+        label_w = stringWidth(f"{code} {label}:", "Helvetica-Bold", 6.0) + 4
+        self.c.line(x + label_w, self.y - 1.2, min(x + COL_W, x + label_w + width_chars * 4.6), self.y - 1.2)
+        self.y -= 10
         self.fields.append((code, label, kind, "linea OCR manuscrita"))
 
     def number_boxes(self, code: str, label: str, digits: int = 4) -> None:
-        self.ensure(8)
+        self.ensure(12)
         x = self.x()
-        self.c.setFont("Helvetica-Bold", 5.55)
+        self.c.setFont("Helvetica-Bold", 6.0)
         self.c.drawString(x, self.y, f"{code} {label}:")
-        lx = x + stringWidth(f"{code} {label}:", "Helvetica-Bold", 5.55) + 4
+        lx = x + stringWidth(f"{code} {label}:", "Helvetica-Bold", 6.0) + 5
         for i in range(digits):
-            self.c.rect(lx + i * 8, self.y - 5, 7, 7, fill=0, stroke=1)
-        self.y -= 8
+            self.c.rect(lx + i * 9, self.y - 6, 8, 8, fill=0, stroke=1)
+        self.y -= 11
         self.fields.append((code, label, "digitos", f"{digits} casillas numericas"))
 
     def roster(self) -> None:
-        self.ensure(88)
+        self.ensure(145)
         x = self.x()
-        headers = ["#", "PAR", "S", "FN dd/mm/aa", "NR", "ED", "DIS", "TIPO"]
-        widths = [10, 24, 12, 50, 12, 18, 18, 50]
-        self.c.setFont("Helvetica-Bold", 5.1)
+        headers = ["#", "PAR", "S", "FN dd/mm/aaaa", "NR", "ED", "DIS", "TIPO"]
+        widths = [12, 30, 15, 68, 16, 22, 22, 78]
+        self.c.setFont("Helvetica-Bold", 5.8)
         cur = x
         for h, w in zip(headers, widths):
             self.c.drawCentredString(cur + w / 2, self.y, h)
             cur += w
-        self.y -= 5
-        for row in range(1, 9):
+        self.y -= 7
+        for row in range(1, 11):
             cur = x
-            self.c.setFont("Helvetica", 5.1)
+            self.c.setFont("Helvetica", 5.8)
             for idx, w in enumerate(widths):
-                self.c.rect(cur, self.y - 7, w, 8, fill=0, stroke=1)
+                self.c.rect(cur, self.y - 10, w, 11, fill=0, stroke=1)
                 if idx == 0:
-                    self.c.drawCentredString(cur + w / 2, self.y - 5, str(row))
+                    self.c.drawCentredString(cur + w / 2, self.y - 7.5, str(row))
                 cur += w
-            self.y -= 8
+            self.y -= 11
         self.y -= 2
-        self.line("PAR: JH jefe/a, CO conyuge, HI hijo/a, PA padre/madre, HE hermano/a, NI nieto/a, AB abuelo/a, OP otro pariente, NP no pariente, OT otro.", size=5.1)
-        self.line("S: F/M/O. NR: no recuerda fecha nac. DIS: S/N. TIPO: FIS, VIS, AUD, INT, PSI, HAB, MUL, OT.", size=5.1)
-        self.fields.append(("H01", "Integrantes del hogar hasta 8 filas", "tabla OCR", "parentesco, sexo, fecha nacimiento, no recuerda, edad, discapacidad, tipo"))
+        self.line("PAR: JH jefe/a, CO conyuge, HI hijo/a, PA padre/madre, HE hermano/a, NI nieto/a, AB abuelo/a, OP otro pariente, NP no pariente, OT otro.", size=5.8, leading=7.2)
+        self.line("S: F/M/O. NR: no recuerda fecha nac. DIS: S/N. TIPO: FIS, VIS, AUD, INT, PSI, HAB, MUL, OT.", size=5.8, leading=7.2)
+        self.fields.append(("H01", "Integrantes del hogar hasta 10 filas", "tabla OCR", "parentesco, sexo, fecha nacimiento, no recuerda, edad, discapacidad, tipo"))
+
+    def wide_panel(self, title: str, lines: list[str], top: float | None = None, bottom: float = 30) -> None:
+        y_top = min(top if top is not None else 390, self.y - 8)
+        y_bottom = bottom
+        if y_top - y_bottom < 90:
+            return
+        x = MARGIN
+        w = W - 2 * MARGIN
+        self.c.setFillColor(colors.HexColor("#F3F3F3"))
+        self.c.rect(x, y_top - 15, w, 16, fill=1, stroke=0)
+        self.c.setFillColor(colors.black)
+        self.c.setFont("Helvetica-Bold", 7.1)
+        self.c.drawString(x + 4, y_top - 10, title)
+        y = y_top - 25
+        self.c.setFont("Helvetica", 6.0)
+        for item in lines:
+            if y < y_bottom + 18:
+                break
+            self.c.drawString(x + 5, y, item)
+            y -= 10
+        if y - y_bottom > 38:
+            self.c.setFont("Helvetica-Bold", 6.0)
+            self.c.drawString(x + 5, y - 2, "Notas / croquis / aclaraciones para digitacion:")
+            y -= 12
+            while y > y_bottom + 8:
+                self.c.line(x + 5, y, x + w - 5, y)
+                y -= 14
+        self.c.rect(x, y_bottom, w, y_top - y_bottom, fill=0, stroke=1)
 
     def finish(self) -> None:
+        if self.page == 1:
+            self.new_page()
         self._footer()
         self.c.save()
 
@@ -186,8 +219,11 @@ def build_pdf() -> None:
     f.field("C05", "Segmento/ruta")
     f.field("C06", "GPS lat")
     f.field("C07", "GPS lng")
+    f.field("C07B", "Precision GPS / fuente")
     f.boxes("C08", "Acepta participar voluntariamente. Si NO, fin", [("S", "Si"), ("N", "No")])
     f.boxes("C09", "Hogar con alguien que hace artesanias", [("S", "Si"), ("N", "No")])
+    f.boxes("C10", "Foto general autorizada", [("S", "Si"), ("N", "No")])
+    f.field("C11", "Observacion acceso/camino")
 
     f.section("1", "Identificacion y ubicacion fija")
     f.field("I01", "Nombre y apellido")
@@ -205,6 +241,10 @@ def build_pdf() -> None:
     f.boxes("I14", "Idioma principal", [("1", "Guarani"), ("2", "Castellano"), ("3", "Ambos"), ("4", "Port"), ("OT", "Otro")])
     f.boxes("I15", "Pertenece a comunidad indigena", [("S", "Si"), ("N", "No"), ("NS", "Ns/Nr")])
     f.field("I16", "Pueblo/etnia si aplica")
+    f.field("I17", "Correo o contacto alternativo")
+    f.boxes("I18", "Nacionalidad", [("1", "Paraguaya"), ("2", "Bras"), ("3", "Arg"), ("OT", "Otra")])
+
+    f.next_col()
 
     f.section("2", "Integrantes del hogar")
     f.roster()
@@ -228,6 +268,20 @@ def build_pdf() -> None:
     f.boxes("V12", "Equipamiento", [("TV", "TV"), ("HEL", "Helad"), ("CEL", "Cel"), ("MOT", "Moto"), ("CAR", "Auto"), ("MAQ", "Maq"), ("OT", "Otro")], multi=True)
     f.boxes("V13", "Seguro/cobertura salud", [("1", "IPS"), ("2", "Publico"), ("3", "Priv"), ("4", "Ning"), ("NS", "Ns/Nr")])
     f.boxes("V14", "Ingreso alcanza necesidades basicas", [("1", "Bien"), ("2", "Justo"), ("3", "No algunos meses"), ("4", "No mayoria"), ("NS", "Ns/Nr")])
+    f.field("V15", "Referencia visible/foto vivienda")
+    f.wide_panel(
+        "Control territorial para vincular papel + mapa + app",
+        [
+            "C02 debe copiar exactamente el ID del punto/vivienda asignada en el mapa territorial.",
+            "Si no hay ID visible, anotar referencia fisica: camino, vecino, hito, escuela, capilla, arroyo o comercio cercano.",
+            "C06-C07 se copian desde GPS/app o desde mapa offline. Si se escriben a mano, revisar signo negativo y decimales.",
+            "Resultado territorial: [ ] vivienda ubicada  [ ] vivienda nueva  [ ] vivienda duplicada  [ ] ausente  [ ] rechazo",
+            "Acceso/camino: [ ] transitable  [ ] barro/agua  [ ] requiere guia local  [ ] acceso privado  [ ] otro",
+            "Fotos de respaldo: [ ] entorno  [ ] frente vivienda  [ ] taller  [ ] materia prima  [ ] no autorizada",
+        ],
+    )
+
+    f.new_page()
 
     f.section("4", "Actividad artesanal o potencial")
     f.boxes("A00", "Si C09=N, hay interes/potencial artesanal", [("S", "Si"), ("N", "No"), ("NS", "Ns/Nr")])
@@ -253,6 +307,10 @@ def build_pdf() -> None:
     f.boxes("A18", "Capacitacion ultimos 2 anos", [("S", "Si"), ("N", "No")])
     f.boxes("A19", "Temas que necesita", [("TEC", "Tecn"), ("DIS", "Diseno"), ("CAL", "Calid"), ("COM", "Comerc"), ("DIG", "Digital"), ("ORG", "Org"), ("FIN", "Fin"), ("OT", "Otro")], multi=True)
     f.boxes("A20", "Trabaja", [("1", "Solo/a"), ("2", "Familia"), ("3", "Grupo"), ("4", "Asoc")])
+    f.number_boxes("A21", "Personas apoyan produccion", 2)
+    f.field("A22", "Necesidad principal de capacitacion")
+
+    f.next_col()
 
     f.section("5", "Produccion, ventas e ingresos")
     f.number_boxes("P01", "Unidades/mes", 4)
@@ -296,6 +354,17 @@ def build_pdf() -> None:
     f.field("R08", "Observaciones finales", 38)
     f.field("R09", "Resultado entrevista: completa/parcial/rechazo/ausente")
     f.field("R10", "Firma o iniciales encuestador")
+    f.wide_panel(
+        "Control de calidad OCR/OMR antes de entregar el formulario",
+        [
+            "Revisar que C08 tenga una sola marca. Si C08=N, la entrevista debe quedar como rechazo/no consentimiento.",
+            "Revisar que cada OT tenga detalle legible: A04D, P10D, P11D, P13D u observaciones.",
+            "Verificar importes P02-P07 y F06: escribir solo numeros, sin puntos si se va a leer por OCR numerico.",
+            "Verificar que ingreso artesanal P04/P05 no mezcle otros ingresos, y que ingreso total P06/P07 incluya todas las fuentes.",
+            "R05 y R06 pueden tener multiples marcas: formato e idioma preferido para informacion sobre Paracel.",
+            "Revision: [ ] encuestador  [ ] supervisor  [ ] digitacion OCR  [ ] inconsistencias corregidas",
+        ],
+    )
 
     f.finish()
 
@@ -307,7 +376,7 @@ Archivo PDF: `FORMULARIO_OCR_OFICIO_ARTESANOS.pdf`
 
 ## Proposito
 
-Boleta de respaldo en papel, tamano oficio/legal y maximo dos paginas, pensada para escaneo a 300 dpi y lectura OCR/OMR. La app web sigue siendo el canal principal; esta boleta sirve cuando se necesite operar sin tablet, hacer contingencia offline o digitar rapidamente desde formularios escaneados.
+Boleta de respaldo en papel, tamano oficio/legal y dos paginas completas, pensada para escaneo a 300 dpi y lectura OCR/OMR. La app web sigue siendo el canal principal; esta boleta sirve cuando se necesite operar sin tablet, hacer contingencia offline o digitar rapidamente desde formularios escaneados.
 
 ## Reglas de captura
 
@@ -333,6 +402,8 @@ Boleta de respaldo en papel, tamano oficio/legal y maximo dos paginas, pensada p
 | H01 | Roster del hogar. Evita repetir conteos por sexo/edad porque se calculan desde integrantes. |
 | P04-P09 | Variables principales para ingreso, dependencia y vulnerabilidad economica. |
 | R04-R06 | Preferencias de comunicacion sobre Paracel. |
+| Panel territorial | Controla duplicados, viviendas nuevas, acceso, fotos y referencia para mapa. |
+| Panel OCR | Control de calidad antes de digitalizar o importar. |
 
 ## Codigos transversales
 

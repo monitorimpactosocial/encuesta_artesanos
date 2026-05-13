@@ -4,7 +4,7 @@ Archivo PDF: `FORMULARIO_OCR_OFICIO_ARTESANOS.pdf`
 
 ## Proposito
 
-Boleta de respaldo en papel, tamano oficio/legal y maximo dos paginas, pensada para escaneo a 300 dpi y lectura OCR/OMR. La app web sigue siendo el canal principal; esta boleta sirve cuando se necesite operar sin tablet, hacer contingencia offline o digitar rapidamente desde formularios escaneados.
+Boleta de respaldo en papel, tamano oficio/legal y dos paginas completas, pensada para escaneo a 300 dpi y lectura OCR/OMR. La app web sigue siendo el canal principal; esta boleta sirve cuando se necesite operar sin tablet, hacer contingencia offline o digitar rapidamente desde formularios escaneados.
 
 ## Reglas de captura
 
@@ -30,6 +30,8 @@ Boleta de respaldo en papel, tamano oficio/legal y maximo dos paginas, pensada p
 | H01 | Roster del hogar. Evita repetir conteos por sexo/edad porque se calculan desde integrantes. |
 | P04-P09 | Variables principales para ingreso, dependencia y vulnerabilidad economica. |
 | R04-R06 | Preferencias de comunicacion sobre Paracel. |
+| Panel territorial | Controla duplicados, viviendas nuevas, acceso, fotos y referencia para mapa. |
+| Panel OCR | Control de calidad antes de digitalizar o importar. |
 
 ## Codigos transversales
 

@@ -2,6 +2,45 @@
 
 ## 2026-05-13 - Boleta OCR/OMR oficio para respaldo en papel
 
+### Reconstruccion solicitada
+- Se pidio usar dos paginas enteras tamano oficio y reconstruir el formulario para aprovechar mejor el espacio.
+- Se rehizo la distribucion del PDF para que ya no quede como una boleta de una pagina demasiado comprimida.
+
+### Cambios aplicados en la version de dos paginas
+- `FORMULARIO_OCR_OFICIO_ARTESANOS.pdf` ahora se genera en exactamente 2 paginas oficio/legal.
+- Pagina 1:
+  - Control, consentimiento, identificacion y ubicacion fija.
+  - Integrantes del hogar con tabla ampliada hasta 10 filas.
+  - Vivienda, servicios y proteccion.
+  - Panel amplio de control territorial para vincular papel, mapa y app:
+    - ID vivienda/punto mapa,
+    - viviendas nuevas o duplicadas,
+    - acceso/camino,
+    - fotos de respaldo,
+    - notas/croquis para digitacion.
+- Pagina 2:
+  - Actividad artesanal o potencial.
+  - Produccion, ventas e ingresos.
+  - Formalizacion, credito y ambiente.
+  - Paracel, expectativas y cierre.
+  - Panel amplio de control de calidad OCR/OMR antes de entregar:
+    - consentimiento,
+    - detalles de opciones `OT`,
+    - importes,
+    - separacion ingreso artesanal vs ingreso total,
+    - formato/idioma Paracel,
+    - revision por encuestador, supervisor y digitacion OCR.
+- Se agrandaron casillas, lineas, encabezados y tabla de integrantes para mejorar lectura en campo y reconocimiento posterior.
+- Se actualizo `FORMULARIO_OCR_OFICIO_ARTESANOS_DICCIONARIO.md` para documentar la version de dos paginas completas.
+
+### Verificacion de la reconstruccion
+- Se regenero el PDF con `tools/generate_ocr_form.py`.
+- Se verifico con `PyPDF2`:
+  - paginas: `2`;
+  - pagina 1: `612.0 x 1008.0`;
+  - pagina 2: `612.0 x 1008.0`.
+- Se renderizaron vistas previas de ambas paginas y se confirmo visualmente que el espacio inferior se usa con paneles operativos utiles.
+
 ### Pedido recibido
 - Evaluar y producir un documento PDF de una pagina tamano oficio, con maximo dos paginas si fuese necesario.
 - Comprimir todas las preguntas y opciones de respuesta de forma inteligente para permitir OCR/OMR y digitalizacion rapida de encuestas en papel.
